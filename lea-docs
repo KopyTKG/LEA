@@ -1,0 +1,11 @@
+P = plaintext
+C = ciphertext 
+K = Keys
+
+P[4] = 32bits
+C[4] = 32bits
+
+K[6] = 32bits each
+ 
+ 
+https://en.wikipedia.org/wiki/LEA_(cipher)
