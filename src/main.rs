@@ -2,7 +2,7 @@ use rand::RngCore;
 use rand::rngs::OsRng;
 
 struct LEA {
-    plain_text: String,
+    segments: [usize; 4],
     key: [usize; 4],
     key_schedule: [[usize; 6]; 24],
     constants: [usize; 4],
@@ -18,10 +18,10 @@ impl LEA {
         for i in 0..24 {
             // Update t for each round
             let mut t_temp = t;
-            t_temp[0] = (((t_temp[0] + (self.constants[i % 4] << (i + 0))) << 1) & ((1 << 32) - 1));
-            t_temp[1] = (((t_temp[1] + (self.constants[i % 4] << (i + 1))) << 3) & ((1 << 32) - 1));
-            t_temp[2] = (((t_temp[2] + (self.constants[i % 4] << (i + 2))) << 6) & ((1 << 32) - 1));
-            t_temp[3] = (((t_temp[3] + 1 + (self.constants[i % 4] << (i + 3))) << 11) & ((1 << 32) - 1));
+            t_temp[0] = ((t_temp[0] + (self.constants[i % 4] << (i + 0))) << 1) & ((1 << 32) - 1);
+            t_temp[1] = ((t_temp[1] + (self.constants[i % 4] << (i + 1))) << 3) & ((1 << 32) - 1);
+            t_temp[2] = ((t_temp[2] + (self.constants[i % 4] << (i + 2))) << 6) & ((1 << 32) - 1);
+            t_temp[3] = ((t_temp[3] + (self.constants[i % 4] << (i + 3))) << 11) & ((1 << 32) - 1);
     
             // Assign values to key_schedule
             key_schedule[i][0] = t_temp[0];
@@ -30,7 +30,6 @@ impl LEA {
             key_schedule[i][3] = t_temp[1]; // Using t_temp[1] here instead of t[1]
             key_schedule[i][4] = t_temp[3];
             key_schedule[i][5] = t_temp[1]; // Using t_temp[1] here instead of t[1]
-    
             // Update t for the next round
             t = t_temp;
         }
@@ -38,11 +37,13 @@ impl LEA {
         return key_schedule;
     }
         
-    fn explode_plaintext(&self) -> [usize; 4] {
+    fn explode_plaintext(&self, plain_text: String) -> [usize; 4] {
         let mut segments: [usize; 4] = [0; 4];
-        
+
+        println!("Plaintext: {}", plain_text);
+
         // Convert the plaintext characters into their corresponding Unicode code points
-        let mut chars = self.plain_text.chars();
+        let mut chars = plain_text.chars();
         let mut segment_index = 0;
         let mut segment_value = 0;
         let mut shift_amount = 0;
@@ -52,6 +53,7 @@ impl LEA {
             segment_value |= code_point << shift_amount;
             shift_amount += 32;
             if shift_amount == 32 {
+                if segment_index > 3 {break;}
                 segments[segment_index] = segment_value;
                 segment_value = 0;
                 shift_amount = 0;
@@ -64,7 +66,7 @@ impl LEA {
 
     fn new(plain_text: String, key: [usize; 4], constants: [usize; 4]) -> LEA {
         let mut lea = LEA {
-            plain_text: String::new(),
+            segments: [0; 4],
             key: key,
             key_schedule: [[0; 6];24],
             constants: constants,
@@ -77,8 +79,8 @@ impl LEA {
         while padded_plain_text.len() < 16 {
             padded_plain_text.push('\0'); // Pad with null characters
         }
-        
-        lea.plain_text = padded_plain_text;
+
+        lea.segments = lea.explode_plaintext(padded_plain_text);
         lea.key_schedule = lea.generate_key_schedule();
         return lea;
     }
@@ -97,9 +99,8 @@ fn generate_key() -> [usize; 4] {
 }
 
 fn main() {
-    println!("{:?}", generate_key());
     let lea = LEA::new("hello".to_owned(), generate_key(), generate_key());
-    println!("{:?}", lea.plain_text);
+    println!("{:?}", lea.segments);
     println!("{:?}", lea.key);
     println!("{:?}", lea.constants);
     println!("{:?}", lea.generate_key_schedule());
