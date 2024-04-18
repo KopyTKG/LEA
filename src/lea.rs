@@ -9,7 +9,7 @@ use core::mem;
 use core::ptr;
 
 use cipher::consts::{U8, U16};
-use cipher::generic_array::{typenum::Unsigned, GenericArray};
+use cipher::generic_array::{GenericArray};
 use cipher::{BlockCipher, BlockDecrypt, BlockEncrypt, NewBlockCipher};
 
 use round_key::{RoundKey, Rk144};
