@@ -1,75 +1,74 @@
-//std libs
-use std::io::prelude::*;
-//use std::io::{Read, Write};
-use std::fs::{File};
+use std::io::{Read, Write};
+use std::fs::File;
 use std::path::Path;
 
 mod lea;
-use lea::{prelude::*, Lea128};
-
-fn string_to_u8_array(s: &str) -> [u8; 16] {
-    let mut arr = [0u8; 16];
-    for (i, c) in s.bytes().enumerate() {
-        if i >= 16 {
-            break;
-        }
-        arr[i] = c;
-    }
-    arr
-
-}
+mod round_key;
 
 
-fn u8_array_to_string(arr: &[u8; 16]) -> String {
-    let mut s = String::new();
-    for c in arr.iter() {
-        s.push(*c as char);
-    }
-    s
-}
+fn create_blocks(buffer: Vec<u8>) -> Vec<[u8; 16]> {
+    let mut blocks: Vec<[u8;16]> = Vec::new();
+    let full_blocks = buffer.len() / 16;
+    let remaining_bytes = buffer.len() % 16;
 
-fn main() -> std::io::Result<()> {
-    let path = Path::new("source.txt");
+    let total_blocks = if remaining_bytes == 0 {
+        full_blocks
+    } else {
+        full_blocks + 1
+    };
 
-    if !path.exists() {
-        File::create("source.txt");
-        return Err(std::io::Error::new(std::io::ErrorKind::NotFound, "source.txt not found"));
-    }
-
-    let mut file = File::open("source.txt")?;
-    let mut buffer = Vec::new();
-    file.read_to_end(&mut buffer);
-
-    // split the buffer into u8 array with 16 bytes
-    let mut blocks: arr! = arr![u8;16];
-    for i in 0..buffer.len() / 16 {
-        let mut block: [u8:16] = [0; 16];
+    for i in 0..total_blocks {
+        let mut block: [u8;16] = [0x20; 16];
         for j in 0..16 {
-            block[j] = buffer[i * 16 + j];
+            let index = i * 16 + j;
+            if index < buffer.len() {
+                block[j] = buffer[index];
+            }
         }
         blocks.push(block);
     }
+    blocks
+}
+
+
+fn main() -> std::io::Result<()> {
+    let path = Path::new("source.txt");
+    // Try to open the file or create it if it does not exist
+    let mut file = if path.exists() {
+        File::open(path)?
+    } else {
+        File::create(path)?
+    };
+    // Read the file into a buffer
+    let mut buffer = Vec::new();
+    file.read_to_end(&mut buffer)?;
+    let mut blocks = create_blocks(buffer);
+
     // pregenerated key for encryption
-    let key = arr![u8; 0x0F, 0x1E, 0x2D, 0x3C, 0x4B, 0x5A, 0x69, 0x78, 0x87, 0x96, 0xA5, 0xB4, 0xC3, 0xD2, 0xE1, 0xF0];
+    let key: [u32; 16] = [0x0F, 0x1E, 0x2D, 0x3C, 0x4B, 0x5A, 0x69, 0x78, 0x87, 0x96, 0xA5, 0xB4, 0xC3, 0xD2, 0xE1, 0xF0];
     
-    let mut file = File::create("encrypted.txt");
+    let mut save = File::create("encrypted.txt")?;
 
-    for block in blocks.iter_mut() {
-        let mut block = block.clone();
-        let lea128 = Lea128::new(&key);
-        lea128.encrypt_block(block);
-        file.write_all(&block);
+    let rk = round_key::generate(key);
+
+    for bl in blocks.iter_mut() {
+        println!("{:?}", bl);
+        let mut block = bl.clone();
+        lea::encrypt_block(rk,&mut block);
+        save.write_all(&block)?;
     }
-
-    //let mut file = File::create("encrypted.txt");
-    //for block in blocks.iter() {
-    //    file.write_all(block);
-    //}
-
+    
+    let mut enc = File::open("encrypted.txt")?;
+    let mut buffer = Vec::new();
+    enc.read_to_end(&mut buffer)?;
+    let mut blocks = create_blocks(buffer); 
+    let mut save = File::create("decrypted.txt")?;
+    for bl in blocks.iter_mut() {
+        println!("{:?}", bl);
+        let mut block = bl.clone();
+        lea::decrypt_block(rk,&mut block);
+        save.write_all(&block)?;
+    }
+    
     Ok(())
-    // decryption process
-    // lea128.decrypt_block((&mut block).into());
-    // let text = u8_array_to_string(&block);
-    // println!("{:?}", text);
-
 }

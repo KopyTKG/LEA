@@ -1,56 +1,6 @@
-pub mod prelude {
-	pub use crate::lea::cipher::{generic_array::{arr}, BlockDecrypt, BlockEncrypt, NewBlockCipher};
-}
-
-mod round_key;
-
-pub use cipher;
 use core::mem;
-use core::ptr;
 
-use cipher::consts::{U8, U16};
-use cipher::generic_array::{GenericArray};
-use cipher::{BlockCipher, BlockDecrypt, BlockEncrypt, NewBlockCipher};
-
-use round_key::{RoundKey, Rk144};
-
-pub type Lea128 = Lea<Rk144>;
-pub struct Lea<Rk> where
-Rk: RoundKey {
-	rk: GenericArray<u32, Rk::RkSize>
-}
-
-impl<Rk> BlockCipher for Lea<Rk> where
-Rk: RoundKey {
-	type BlockSize = U16;
-	type ParBlocks = U8;
-}
-
-impl<Rk> BlockDecrypt for Lea<Rk> where
-Rk: RoundKey {
-	fn decrypt_block(&self, block: &mut GenericArray<u8, Self::BlockSize>) {
-		decrypt_block::<Rk>(&self.rk, block);
-	}
-}
-
-impl<Rk> BlockEncrypt for Lea<Rk> where
-Rk: RoundKey {
-	fn encrypt_block(&self, block: &mut GenericArray<u8, Self::BlockSize>) {
-		encrypt_block::<Rk>(&self.rk, block);
-	}
-}
-
-impl<Rk> NewBlockCipher for Lea<Rk> where
-Rk: RoundKey {
-	type KeySize = Rk::KeySize;
-
-	fn new(key: &GenericArray<u8, Self::KeySize>) -> Self {
-		Self { rk: Rk::generate(key) }
-	}
-}
-
-fn encrypt_block<Rk>(rk: &GenericArray<u32, Rk::RkSize>, block: &mut GenericArray<u8, <Lea<Rk> as BlockCipher>::BlockSize>) where
-Rk: RoundKey {
+pub fn encrypt_block(rk: [u32; 144], block: &mut [u8; 16]) {
 	let block_orig = block;
 	let mut block_copy;
 
@@ -63,15 +13,6 @@ Rk: RoundKey {
 
 		&mut block_copy
 	};
-
-	cfg_if::cfg_if! {
-		if #[cfg(target_endian = "big")] {
-			block[0] = block[0].swap_bytes();
-			block[1] = block[1].swap_bytes();
-			block[2] = block[2].swap_bytes();
-			block[3] = block[3].swap_bytes();
-		}
-	}
 
 	// 24 rounds for 128-bit key
 	block[3] = (block[2] ^ rk[4]).wrapping_add(block[3] ^ rk[5]).rotate_right(3);
@@ -151,25 +92,9 @@ Rk: RoundKey {
 	block[2] = (block[1] ^ rk[142]).wrapping_add(block[2] ^ rk[143]).rotate_right(3);
 	block[1] = (block[0] ^ rk[140]).wrapping_add(block[1] ^ rk[141]).rotate_right(5);
 	block[0] = (block[3] ^ rk[138]).wrapping_add(block[0] ^ rk[139]).rotate_left(9);
-
-	cfg_if::cfg_if! {
-		if #[cfg(target_endian = "big")] {
-			block[0] = block[0].swap_bytes();
-			block[1] = block[1].swap_bytes();
-			block[2] = block[2].swap_bytes();
-			block[3] = block[3].swap_bytes();
-		}
-	}
-
-	if !block_is_aligned {
-		unsafe {
-			ptr::write_unaligned(block_orig.as_mut_ptr().cast::<[u32; 4]>(), *block);
-		}
-	}
 }
 
-fn decrypt_block<Rk>(rk: &GenericArray<u32, Rk::RkSize>, block: &mut GenericArray<u8, <Lea<Rk> as BlockCipher>::BlockSize>) where
-Rk: RoundKey {
+pub fn decrypt_block(rk: [u32; 144], block: &mut [u8; 16]) {
 	let block_orig = block;
 	let mut block_copy;
 
@@ -182,15 +107,6 @@ Rk: RoundKey {
 
 		&mut block_copy
 	};
-
-	cfg_if::cfg_if! {
-		if #[cfg(target_endian = "big")] {
-			block[0] = block[0].swap_bytes();
-			block[1] = block[1].swap_bytes();
-			block[2] = block[2].swap_bytes();
-			block[3] = block[3].swap_bytes();
-		}
-	}
 
 	// 24 rounds for 128-bit key
 	block[0] = block[0].rotate_right(9).wrapping_sub(block[3] ^ rk[138]) ^ rk[139];
@@ -271,18 +187,4 @@ Rk: RoundKey {
 	block[2] = block[2].rotate_left(5).wrapping_sub(block[1] ^ rk[2]) ^ rk[3];
 	block[3] = block[3].rotate_left(3).wrapping_sub(block[2] ^ rk[4]) ^ rk[5];
 
-	cfg_if::cfg_if! {
-		if #[cfg(target_endian = "big")] {
-			block[0] = block[0].swap_bytes();
-			block[1] = block[1].swap_bytes();
-			block[2] = block[2].swap_bytes();
-			block[3] = block[3].swap_bytes();
-		}
-	}
-
-	if !block_is_aligned {
-		unsafe {
-			ptr::write_unaligned(block_orig.as_mut_ptr().cast::<[u32; 4]>(), *block);
-		}
-	}
 }
