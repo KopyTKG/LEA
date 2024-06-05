@@ -3,7 +3,6 @@ package stream
 import (
 	"bufio"
 	"encoding/binary"
-	"fmt"
 	"io"
 	"log"
 	"os"
@@ -40,12 +39,11 @@ func BinaryStream(path string) []uint32 {
 		chunk := binary.LittleEndian.Uint32(buf)
 		chunks = append(chunks, chunk)
 	}
-
 	return chunks
 }
 
 func WriteBinaryStream(fileName string, data []uint32) {
-	bytes := make([]byte, len(data)*4) // each uint32 contains 4 bytes
+	bytes := make([]byte, len(data)*4)
 	for i, val := range data {
 		binary.LittleEndian.PutUint32(bytes[i*4:(i+1)*4], val)
 	}
@@ -68,5 +66,4 @@ func WriteBinaryStream(fileName string, data []uint32) {
 		log.Fatalf("Failed to flush writer: %v\n", err)
 	}
 
-	fmt.Println("Data written successfully")
 }
