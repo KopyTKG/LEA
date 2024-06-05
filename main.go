@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"lea/help"
 	"lea/logic"
+	"lea/generator"
 	"os"
 	"strings"
 )
@@ -18,27 +19,32 @@ func main() {
 
 	var filePath string
 	validCommandFound := false
-
+	
 	for _, arg := range args {
 		switch {
-		case arg == "-E" || arg == "-D" || arg == "-C":
+		case arg == "-E" || arg == "-D" || arg == "-C" || arg == "-K":
 			validCommandFound = true
 			switch arg {
 			case "-E":
 				if filePath != "" {
-					logic.EncryptFile(filePath)
+					key := logic.GetInternalKey()
+					logic.EncryptFile(filePath, key)
 				} else {
 					fmt.Println("No file path provided for encryption.")
 				}
 			case "-D":
 				if filePath != "" {
-					logic.DecryptFile(filePath)
+					key := logic.GetInternalKey()
+					logic.DecryptFile(filePath, key)
 				} else {
 					fmt.Println("No file path provided for decryption.")
 				}
 			case "-C":
-				logic.GenerateConstants()
+				generator.GenerateConstants()
+			case "-K":
+				generator.GenerateKey()
 			}
+
 		default:
 			if strings.Contains(arg, ".") {
 				filePath = arg
