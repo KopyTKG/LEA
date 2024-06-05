@@ -1,10 +1,27 @@
 package encryption
 
-import "lea/bitops"
+import (
+	"lea/bitops"
+	"lea/stream"
+	"os"
+)
 
-var constval = [8]uint32{0xC3EFE9DB, 0x44626B02, 0x79E27C8A, 0x78DF30EC, 0x715EA49E, 0xC785DA0A, 0xE04EF22A, 0xE5C40957}
+var fallback = [8]uint32{0xC3EFE9DB, 0x44626B02, 0x79E27C8A, 0x78DF30EC, 0x715EA49E, 0xC785DA0A, 0xE04EF22A, 0xE5C40957}
+
 
 func Generate(key [16]uint32) [144]uint32 {
+	var constval [8]uint32
+	// Check if seed file exists
+	if _, err := os.Stat("/tmp/seed"); os.IsNotExist(err) {
+		constval = fallback
+	} else {
+		// read seed file for /tmp/seed and parse it to constval
+		chunks := stream.BinaryStream("/tmp/seed")
+		for i := 0; i < len(chunks); i++ {
+		 constval[i] = chunks[i]
+		}
+	}
+
 	if len(key) != 16 {
 		panic("Key must be an array of 16 uint32s")
 	}

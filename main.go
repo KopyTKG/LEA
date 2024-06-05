@@ -11,22 +11,44 @@ import (
 func main() {
 	args := os.Args[1:]
 
-	if len(args) < 2 {
+	if len(args) < 1 {
 		help.PrintHelp()
 		return
 	}
 
-	filePath := args[0]
-	command := strings.ToUpper(args[1])
+	var filePath string
+	validCommandFound := false
 
-	switch command {
-	case "-E":
-		logic.EncryptFile(filePath)
-	case "-D":
-		logic.DecryptFile(filePath)
-	default:
-		fmt.Println("Invalid command")
-		help.PrintHelp()
+	for _, arg := range args {
+		switch {
+		case arg == "-E" || arg == "-D" || arg == "-C":
+			validCommandFound = true
+			switch arg {
+			case "-E":
+				if filePath != "" {
+					logic.EncryptFile(filePath)
+				} else {
+					fmt.Println("No file path provided for encryption.")
+				}
+			case "-D":
+				if filePath != "" {
+					logic.DecryptFile(filePath)
+				} else {
+					fmt.Println("No file path provided for decryption.")
+				}
+			case "-C":
+				logic.GenerateConstants()
+			}
+		default:
+			if strings.Contains(arg, ".") {
+				filePath = arg
+				validCommandFound = true
+			}
+		}
 	}
 
+	if !validCommandFound {
+		fmt.Println("Invalid command or file path")
+		help.PrintHelp()
+	}
 }
