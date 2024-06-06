@@ -1,29 +1,15 @@
 package encryption
 
-import (
-	"lea/bitops"
-	"lea/stream"
-	"os"
-)
+import "lea/bitops"
 
-var fallback = [8]uint32{0xC3EFE9DB, 0x44626B02, 0x79E27C8A, 0x78DF30EC, 0x715EA49E, 0xC785DA0A, 0xE04EF22A, 0xE5C40957}
-
-
-func Generate(key [16]uint32) [144]uint32 {
-	var constval [8]uint32
-	// Check if seed file exists
-	if _, err := os.Stat("/tmp/seed"); os.IsNotExist(err) {
-		constval = fallback
-	} else {
-		// read seed file for /tmp/seed and parse it to constval
-		chunks := stream.BinaryStream("/tmp/seed")
-		for i := 0; i < len(chunks); i++ {
-		 constval[i] = chunks[i]
-		}
-	}
+func Generate(key [16]uint32, seed [8]uint32) [144]uint32 {
 
 	if len(key) != 16 {
 		panic("Key must be an array of 16 uint32s")
+	}
+
+	if len(seed) != 8 {
+		panic("Seed must be an array of 8 uint32s")
 	}
 
 	// Initialize round key array
@@ -39,7 +25,7 @@ func Generate(key [16]uint32) [144]uint32 {
 	copy(rkT, key[:4]) // Copy first four elements to temporary array
 
 	for i := 0; i < 24; i++ {
-		t0 := bitops.RotateLeft32(constval[i%4], uint(i))
+		t0 := bitops.RotateLeft32(seed[i%4], uint(i))
 		t1 := bitops.RotateLeft32(t0, 1)
 		t2 := bitops.RotateLeft32(t1, 1)
 		t3 := bitops.RotateLeft32(t2, 1)

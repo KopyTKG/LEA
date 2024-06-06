@@ -3,43 +3,22 @@ package help
 import "fmt"
 
 func PrintHelp() {
-    helpText := `
-----------------------------------------------------
-                       LEA Encryption
-----------------------------------------------------
+    helpText := `Usage: lea [file] ?[options]
 
-Options:
-    *file*           Source file path with extension
-    -E               Encrypt the source file
-    -D               Decrypt the source file
-
-Secrets options:
-    By default, the program uses a preset key and seed. You can generate
-    new keys and seeds with the following options:
-    
-    --gen-key        Generate an internal key and save it to /tmp/key
-    --gen-seed       Generate an internal seed and save it to /tmp/seed
-
-
-    Also, you can provide your own key and seed by adding the following flags:
-
-    --external-key *file*.key   	Provide an external key. Needs to be 512 bytes or longer 
+    -e, --encrypt               	Encrypt the source file
+    -d, --decrypt               	Decrypt the source file
+    -gk, --gen-key        		Generate an internal key and save it to /tmp/key
+    -gs, --gen-seed       		Generate an internal seed and save it to /tmp/seed
+    -ek, --external-key [file].key   	Provide an external key. Needs to be 512 bytes or longer 
     					(anything longer will be truncated to 512 bytes)
-
-    --external-seed *file*.seed 	Provide an external seed. Needs to be 256 bytes or longer 
+    -es, --external-seed [file].seed 	Provide an external seed. Needs to be 256 bytes or longer 
     					(anything longer will be truncated to 256 bytes)
+    -h, --help                  	Display this help message
 
-Usage:
-    lea *file*
+If no options are provided, the file will be encrypted by default. 
+If nothing is provided at all lea will display help.
 
-Default key and seed:
-    lea *file* -E
-    lea *file* -D
-
-With key and seed generation:
-    lea *file* --gen-key --gen-seed -E
-    lea *file* -D
-
+Any errors please report to: <https://github.com/kopytkg/lea/issues>
 `
     fmt.Print(helpText)
 }

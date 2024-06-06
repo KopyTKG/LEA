@@ -6,11 +6,11 @@ import (
 	"lea/stream"
 )
 
-func EncryptFile(filePath string, key [16]uint32) {
+func EncryptFile(filePath string, key [16]uint32, seed [8]uint32) {
 	fmt.Println("Encrypting", filePath)
 	chunks := stream.BinaryStream(filePath)
 	var encChunks []uint32
-	keySegments := encryption.Generate(key)
+	keySegments := encryption.Generate(key, seed)
 	var blocks [4]uint32
 
 	for i := 0; i < len(chunks); i++ {
@@ -31,11 +31,11 @@ func EncryptFile(filePath string, key [16]uint32) {
 	stream.WriteBinaryStream(filePath, encChunks)
 }
 
-func DecryptFile(filePath string, key [16]uint32) {
+func DecryptFile(filePath string, key [16]uint32, seed [8]uint32) {
 	fmt.Println("Decrypting", filePath)
 	chunks := stream.BinaryStream(filePath)
 	var encChunks []uint32
-	keySegments := encryption.Generate(key)
+	keySegments := encryption.Generate(key, seed)
 	var blocks [4]uint32
 
 	for i := 0; i < len(chunks); i++ {
