@@ -9,7 +9,9 @@ This is uni project for subject KI-ZKR. The goal is to implement LEA algorithm i
 This is a project for educational purposes only. Do not use this app for any sensitive data. The encryption is not secure based on preset key that is public. Please use this app with caution.
 
 <h2> Usage </h2>
+
 use `--help` or `-h` for help
+
 ```bash
 lea --help
 ```
