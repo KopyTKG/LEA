@@ -25,3 +25,9 @@ func Reverse8(x uint8) uint8 {
 	return x
 }
 
+func CountBits8(x uint8) int {
+	x = x - ((x >> 1) & 0x55)
+	x = (x & 0x33) + ((x >> 2) & 0x33)
+	x = (x + (x >> 4)) & 0x0F
+	return int(x & 0x0F)
+}
