@@ -6,6 +6,7 @@ import (
 	"strings"
 	"lea/help"
 	"lea/logic"
+	"lea/utils"
 	"lea/generator"
 	"lea/list"
 )
@@ -140,7 +141,7 @@ func executeCommand(command, filePath, keyPath, seedPath string, key *[16]uint32
 }
 
 func performEncryption(filePath, keyPath, seedPath string) {
-	key, seed := logic.GetKeyFile(keyPath), logic.GetSeedFile(seedPath)
+	key, seed := utils.GetKeyFile(keyPath), utils.GetSeedFile(seedPath)
 	if filePath != "" {
 		logic.EncryptFile(filePath, key, seed)
 	} else {
@@ -149,7 +150,7 @@ func performEncryption(filePath, keyPath, seedPath string) {
 }
 
 func performDecryption(filePath, keyPath, seedPath string) {
-	key, seed := logic.GetKeyFile(keyPath), logic.GetSeedFile(seedPath)
+	key, seed := utils.GetKeyFile(keyPath), utils.GetSeedFile(seedPath)
 	if filePath != "" {
 		logic.DecryptFile(filePath, key, seed)
 	} else {

@@ -8,7 +8,7 @@ import (
 
 func EncryptFile(filePath string, key [16]uint32, seed [8]uint32) {
 	fmt.Println("Encrypting", filePath)
-	chunks := stream.BinaryStream(filePath)
+	chunks := stream.BinaryChunkStream(filePath)
 	var encChunks []uint32
 	keySegments := encryption.Generate(key, seed)
 	var blocks [4]uint32
@@ -33,7 +33,7 @@ func EncryptFile(filePath string, key [16]uint32, seed [8]uint32) {
 
 func DecryptFile(filePath string, key [16]uint32, seed [8]uint32) {
 	fmt.Println("Decrypting", filePath)
-	chunks := stream.BinaryStream(filePath)
+	chunks := stream.BinaryChunkStream(filePath)
 	var encChunks []uint32
 	keySegments := encryption.Generate(key, seed)
 	var blocks [4]uint32

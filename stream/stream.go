@@ -14,7 +14,28 @@ func check(e error) {
 	}
 }
 
-func BinaryStream(path string) []uint32 {
+// BinaryStream reads a binary file and returns its contents as bytes
+func BinaryStream(path string) []byte {
+	file, err := os.Open(path)
+	check(err)
+	defer file.Close()
+
+	reader := bufio.NewReader(file)
+	var chunks []byte
+	for {
+		n, err := reader.ReadByte()
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+		}
+		chunks = append(chunks, n)
+	}
+	return chunks
+}
+
+// BinaryStream reads a binary file and returns its contents as a slice of uint32
+func BinaryChunkStream(path string) []uint32 {
 	file, err := os.Open(path)
 	check(err)
 	defer file.Close()
@@ -24,7 +45,7 @@ func BinaryStream(path string) []uint32 {
 	var chunks []uint32
 
 	buf := make([]byte, 4)
-	for {
+	for { 
 		n, err := io.ReadFull(reader, buf)
 		if err != nil {
 			if err == io.EOF || err == io.ErrUnexpectedEOF {
@@ -42,6 +63,7 @@ func BinaryStream(path string) []uint32 {
 	return chunks
 }
 
+// WriteBinaryStream writes a slice of uint32 to a binary file
 func WriteBinaryStream(fileName string, data []uint32) {
 	bytes := make([]byte, len(data)*4)
 	for i, val := range data {

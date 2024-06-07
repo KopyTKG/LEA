@@ -1,4 +1,4 @@
-package logic
+package utils
 
 import (
 	"fmt"
@@ -14,10 +14,9 @@ func GetSeedFile(path string) [8]uint32 {
 		seed = fallbackSeed
 		fmt.Printf("Seed file not found: %v \nUsing fallback\n\n", path)
 	} else {
+		// uint32 array of chunks
 		chunks := stream.BinaryStream(path)
-		for i := 0; i < 8; i++ {
-		 seed[i] = chunks[i]
-		}
+		seed = FingerPrint256(chunks)
 	}
 	return seed
 }

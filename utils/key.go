@@ -1,4 +1,4 @@
-package logic
+package utils
 
 import (
 	"fmt"
@@ -14,10 +14,9 @@ func GetKeyFile(path string) [16]uint32 {
 		key = fallbackKey
 		fmt.Printf("Key file not found: %v \nUsing fallback\n\n", path)
 	} else {
+		// uint32 array of chunks
 		chunks := stream.BinaryStream(path)
-		for i := 0; i < 16; i++ {
-		 key[i] = chunks[i]
-		}
+		key = FingerPrint512(chunks)
 	}
 	return key
 }
