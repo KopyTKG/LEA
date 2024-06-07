@@ -9,10 +9,8 @@ func PrintHelp() {
     -d, --decrypt               	Decrypt the source file
     -gk, --gen-key        		Generate an internal key and save it to /tmp/key
     -gs, --gen-seed       		Generate an internal seed and save it to /tmp/seed
-    -ek, --external-key [file].key   	Provide an external key. Needs to be 512 bytes or longer 
-    					(anything longer will be truncated to 512 bytes)
-    -es, --external-seed [file].seed 	Provide an external seed. Needs to be 256 bytes or longer 
-    					(anything longer will be truncated to 256 bytes)
+    -ek, --external-key [file].key   	Provide an external key. SHA3-512 will do the rest. 
+    -es, --external-seed [file].seed 	Provide an external seed. SHA3-256 will do the rest. 
     -h, --help                  	Display this help message
 
 If no options are provided, the file will be encrypted by default. 
