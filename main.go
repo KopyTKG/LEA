@@ -5,11 +5,14 @@ import (
 	"os"
 	"strings"
 	"lea/help"
-	"lea/logic"
+	"lea/modes"
 	"lea/utils"
 	"lea/generator"
 	"lea/list"
 )
+
+var mode string = "ecb"
+
 
 func main() {
 	args := os.Args[1:]
@@ -27,11 +30,10 @@ func processArgs(args []string) {
 	validCommandFound, encrypted := processArguments(args, &argsList, &filePath, &keyPath, &seedPath)
 
 	if argsList.Length() == 0 && filePath != "" {
-		argsList.Append("-E")
+		argsList.Append("-e")
 	}
 
-	key, seed := [16]uint32{}, [8]uint32{}
-	processCommands(argsList, filePath, keyPath, seedPath, &key, &seed, &validCommandFound, &encrypted)
+	processCommands(argsList, filePath, keyPath, seedPath, &validCommandFound, &encrypted)
 
 	if !validCommandFound {
 		fmt.Println("Invalid command or file path")
@@ -39,7 +41,7 @@ func processArgs(args []string) {
 	}
 
 	if !encrypted && filePath != "" {
-		performEncryption(filePath, keyPath, seedPath)
+		proccesMode(filePath, keyPath, seedPath, mode, "-e")
 	}
 }
 
@@ -110,12 +112,12 @@ func updateFilePath(argsList *list.List, checkLongArg, checkShortArg, currentArg
 	return defaultPath
 }
 
-func processCommands(argsList list.List, filePath, keyPath, seedPath string, key *[16]uint32, seed *[8]uint32, validCommandFound, encrypted *bool) {
+func processCommands(argsList list.List, filePath, keyPath, seedPath string, validCommandFound, encrypted *bool) {
 	for _, arg := range argsList.Elements {
 		switch arg {
 		case "-e", "-d", "--encrypt", "--decrypt", "-gk", "-gs", "--gen-seed", "--gen-key":
 			*validCommandFound = true
-			executeCommand(arg, filePath, keyPath, seedPath, key, seed, encrypted)
+			executeCommand(arg, filePath, keyPath, seedPath, encrypted)
 		
 		case "--external-key", "--external-seed", "-ek", "-es":
 			*validCommandFound = true
@@ -123,14 +125,11 @@ func processCommands(argsList list.List, filePath, keyPath, seedPath string, key
 	}
 }
 
-func executeCommand(command, filePath, keyPath, seedPath string, key *[16]uint32, seed *[8]uint32, encrypted *bool) {
+func executeCommand(command, filePath, keyPath, seedPath string, encrypted *bool) {
 	switch command {
-	case "-e", "--encrypt":
+	case "-e", "--encrypt", "-d", "--decrypt":
 		*encrypted = true
-		performEncryption(filePath, keyPath, seedPath)
-	case "-d", "--decrypt":
-		*encrypted = true
-		performDecryption(filePath, keyPath, seedPath)
+		proccesMode(filePath, keyPath, seedPath, mode, command)
 	case "-gs", "--gen-seed":
 		generator.GenerateConstants()
 		fmt.Println("Seed generated and saved to /tmp/seed")
@@ -140,20 +139,25 @@ func executeCommand(command, filePath, keyPath, seedPath string, key *[16]uint32
 	}
 }
 
-func performEncryption(filePath, keyPath, seedPath string) {
+func proccesMode(filePath, keyPath, seedPath string, mode string, command string){
+	var encrypt bool = false
 	key, seed := utils.GetKeyFile(keyPath), utils.GetSeedFile(seedPath)
-	if filePath != "" {
-		logic.EncryptFile(filePath, key, seed)
-	} else {
-		fmt.Println("No file path provided for encryption.")
+
+	if command == "-e" || command == "--encrypt" {
+		encrypt = true
+	}
+	if filePath == "" {
+		fmt.Println("No file path provided")
+		help.PrintHelp()
+		os.Exit(1)
+	}
+
+	switch mode {
+	case "ecb":
+		modes.PerformECB(filePath, key, seed, encrypt)
+	default:
+		fmt.Println("Invalid mode")
+		help.PrintHelp()
 	}
 }
 
-func performDecryption(filePath, keyPath, seedPath string) {
-	key, seed := utils.GetKeyFile(keyPath), utils.GetSeedFile(seedPath)
-	if filePath != "" {
-		logic.DecryptFile(filePath, key, seed)
-	} else {
-		fmt.Println("No file path provided for decryption.")
-	}
-}
