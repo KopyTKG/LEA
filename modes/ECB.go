@@ -2,8 +2,8 @@ package modes
 
 import (
 	"fmt"
-	"lea/errors"
 	"lea/encryption"
+	"lea/errors"
 	"lea/stream"
 )
 
@@ -11,7 +11,7 @@ func PerformECB(filePath string, key [16]uint32, seed [8]uint32, encrypt bool) {
 	chunks := stream.BinaryChunkStream(filePath)
 	keySegments := encryption.Generate(key, seed)
 	var blocks [4]uint32
-	
+
 	if encrypt {
 		encryptECB(filePath, blocks, keySegments, chunks)
 	} else {
@@ -19,7 +19,6 @@ func PerformECB(filePath string, key [16]uint32, seed [8]uint32, encrypt bool) {
 	}
 
 }
-
 
 func encryptECB(filePath string, blocks [4]uint32, keySegments [144]uint32, chunks []uint32) {
 	fmt.Println("Encrypting", filePath)
@@ -52,4 +51,3 @@ func decryptECB(filePath string, blocks [4]uint32, keySegments [144]uint32, chun
 	}
 	stream.WriteBinaryStream(filePath, encChunks)
 }
-

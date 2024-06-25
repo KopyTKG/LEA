@@ -2,16 +2,15 @@ package main
 
 import (
 	"fmt"
-	"os"
-	"strings"
+	"lea/generator"
 	"lea/help"
 	"lea/modes"
 	"lea/utils"
-	"lea/generator"
+	"os"
+	"strings"
 )
 
 var mode string = "ecb"
-
 
 func main() {
 	args := os.Args[1:]
@@ -51,7 +50,7 @@ func processArguments(args []string, argsList *utils.List, filePath, keyPath, se
 		switch {
 		case arg == "-e" || arg == "-d" || arg == "--encrypt" || arg == "--decrypt":
 			argsList.Append(arg)
-		case arg == "-gk" || arg == "-gs" ||  arg == "--gen-key" || arg == "--gen-seed":
+		case arg == "-gk" || arg == "-gs" || arg == "--gen-key" || arg == "--gen-seed":
 			generateKeyOrSeed(argsList, arg)
 		case arg == "-ek" || arg == "-es" || arg == "--external-key" || arg == "--external-seed":
 			handleExternalFiles(argsList, arg)
@@ -79,13 +78,13 @@ func processArguments(args []string, argsList *utils.List, filePath, keyPath, se
 
 func generateKeyOrSeed(argsList *utils.List, arg string) {
 	index := -1
-	if arg == "--gen-seed" || arg == "-gs"{
+	if arg == "--gen-seed" || arg == "-gs" {
 		index = argsList.IndexOf("--external-seed")
 		if index == -1 {
 			index = argsList.IndexOf("-es")
 		}
 	}
-	if arg == "--gen-key" || arg == "-gk"{
+	if arg == "--gen-key" || arg == "-gk" {
 		index = argsList.IndexOf("--external-key")
 		if index == -1 {
 			index = argsList.IndexOf("-ek")
@@ -101,7 +100,7 @@ func handleExternalFiles(argsList *utils.List, arg string) {
 		if argsList.IndexOf("--gen-key") == -1 && (arg == "--external-key" || arg == "-ek") {
 			argsList.Prepend(arg)
 		}
-		if argsList.IndexOf("--gen-seed") == -1 && (arg == "--external-seed" || arg == "-es"){
+		if argsList.IndexOf("--gen-seed") == -1 && (arg == "--external-seed" || arg == "-es") {
 			argsList.Prepend(arg)
 		}
 	} else {
@@ -125,7 +124,7 @@ func processCommands(argsList utils.List, filePath, keyPath, seedPath string, va
 		case "-e", "-d", "--encrypt", "--decrypt", "-gk", "-gs", "--gen-seed", "--gen-key":
 			*validCommandFound = true
 			executeCommand(arg, filePath, keyPath, seedPath, encrypted)
-		
+
 		case "--external-key", "--external-seed", "-ek", "-es":
 			*validCommandFound = true
 		}
@@ -146,7 +145,7 @@ func executeCommand(command, filePath, keyPath, seedPath string, encrypted *bool
 	}
 }
 
-func proccesMode(filePath, keyPath, seedPath string, mode string, command string){
+func proccesMode(filePath, keyPath, seedPath string, mode string, command string) {
 	var encrypt bool = false
 	key, seed := utils.GetKeyFile(keyPath), utils.GetSeedFile(seedPath)
 
@@ -169,4 +168,3 @@ func proccesMode(filePath, keyPath, seedPath string, mode string, command string
 		help.PrintHelp()
 	}
 }
-
