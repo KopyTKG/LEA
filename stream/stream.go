@@ -60,6 +60,9 @@ func BinaryChunkStream(path string) []uint32 {
 		chunk := binary.LittleEndian.Uint32(buf)
 		chunks = append(chunks, chunk)
 	}
+	for len(chunks)%4 != 0 {
+		chunks = append(chunks, 0)
+	}
 	return chunks
 }
 

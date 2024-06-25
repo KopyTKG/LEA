@@ -1,3 +1,4 @@
 *.key
 *.seed
 testfile.*
+testing/

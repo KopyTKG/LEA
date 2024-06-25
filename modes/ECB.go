@@ -2,6 +2,7 @@ package modes
 
 import (
 	"fmt"
+	"lea/errors"
 	"lea/encryption"
 	"lea/stream"
 )
@@ -12,15 +13,15 @@ func PerformECB(filePath string, key [16]uint32, seed [8]uint32, encrypt bool) {
 	var blocks [4]uint32
 	
 	if encrypt {
-		encryptFile(filePath, blocks, keySegments, chunks)
+		encryptECB(filePath, blocks, keySegments, chunks)
 	} else {
-		decryptFile(filePath, blocks, keySegments, chunks)
+		decryptECB(filePath, blocks, keySegments, chunks)
 	}
 
 }
 
 
-func encryptFile(filePath string, blocks [4]uint32, keySegments [144]uint32, chunks []uint32) {
+func encryptECB(filePath string, blocks [4]uint32, keySegments [144]uint32, chunks []uint32) {
 	fmt.Println("Encrypting", filePath)
 	var encChunks []uint32
 	for i := 0; i < len(chunks); i++ {
@@ -31,13 +32,12 @@ func encryptFile(filePath string, blocks [4]uint32, keySegments [144]uint32, chu
 		}
 	}
 	if len(chunks)%4 != 0 {
-		encryptedBlock := encryption.EncryptBlock(blocks, keySegments)
-		encChunks = append(encChunks, encryptedBlock[:]...)
+		errors.PaddingError()
 	}
 	stream.WriteBinaryStream(filePath, encChunks)
 }
 
-func decryptFile(filePath string, blocks [4]uint32, keySegments [144]uint32, chunks []uint32) {
+func decryptECB(filePath string, blocks [4]uint32, keySegments [144]uint32, chunks []uint32) {
 	fmt.Println("Decrypting", filePath)
 	var encChunks []uint32
 	for i := 0; i < len(chunks); i++ {
@@ -48,8 +48,7 @@ func decryptFile(filePath string, blocks [4]uint32, keySegments [144]uint32, chu
 		}
 	}
 	if len(chunks)%4 != 0 {
-		encryptedBlock := encryption.DecryptBlock(blocks, keySegments)
-		encChunks = append(encChunks, encryptedBlock[:]...)
+		errors.PaddingError()
 	}
 	stream.WriteBinaryStream(filePath, encChunks)
 }

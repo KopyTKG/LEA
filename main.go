@@ -8,7 +8,6 @@ import (
 	"lea/modes"
 	"lea/utils"
 	"lea/generator"
-	"lea/list"
 )
 
 var mode string = "ecb"
@@ -26,7 +25,7 @@ func main() {
 
 func processArgs(args []string) {
 	filePath, keyPath, seedPath := "", "/tmp/key", "/tmp/seed"
-	argsList := list.List{}
+	argsList := utils.List{}
 	validCommandFound, encrypted := processArguments(args, &argsList, &filePath, &keyPath, &seedPath)
 
 	if argsList.Length() == 0 && filePath != "" {
@@ -45,7 +44,7 @@ func processArgs(args []string) {
 	}
 }
 
-func processArguments(args []string, argsList *list.List, filePath, keyPath, seedPath *string) (bool, bool) {
+func processArguments(args []string, argsList *utils.List, filePath, keyPath, seedPath *string) (bool, bool) {
 	validCommandFound, encrypted := false, false
 
 	for _, arg := range args {
@@ -68,12 +67,17 @@ func processArguments(args []string, argsList *list.List, filePath, keyPath, see
 		case arg == "-v" || arg == "--version":
 			help.Version()
 			os.Exit(1)
+
+		case arg == "--ecb":
+			mode = "ecb"
+		case arg == "--cbc":
+			mode = "cbc"
 		}
 	}
 	return validCommandFound, encrypted
 }
 
-func generateKeyOrSeed(argsList *list.List, arg string) {
+func generateKeyOrSeed(argsList *utils.List, arg string) {
 	index := -1
 	if arg == "--gen-seed" || arg == "-gs"{
 		index = argsList.IndexOf("--external-seed")
@@ -92,7 +96,7 @@ func generateKeyOrSeed(argsList *list.List, arg string) {
 	}
 }
 
-func handleExternalFiles(argsList *list.List, arg string) {
+func handleExternalFiles(argsList *utils.List, arg string) {
 	if argsList.Length() > 0 {
 		if argsList.IndexOf("--gen-key") == -1 && (arg == "--external-key" || arg == "-ek") {
 			argsList.Prepend(arg)
@@ -105,7 +109,7 @@ func handleExternalFiles(argsList *list.List, arg string) {
 	}
 }
 
-func updateFilePath(argsList *list.List, checkLongArg, checkShortArg, currentArg, defaultPath string) string {
+func updateFilePath(argsList *utils.List, checkLongArg, checkShortArg, currentArg, defaultPath string) string {
 	if argsList.IndexOf(checkLongArg) != -1 {
 		return currentArg
 	}
@@ -115,7 +119,7 @@ func updateFilePath(argsList *list.List, checkLongArg, checkShortArg, currentArg
 	return defaultPath
 }
 
-func processCommands(argsList list.List, filePath, keyPath, seedPath string, validCommandFound, encrypted *bool) {
+func processCommands(argsList utils.List, filePath, keyPath, seedPath string, validCommandFound, encrypted *bool) {
 	for _, arg := range argsList.Elements {
 		switch arg {
 		case "-e", "-d", "--encrypt", "--decrypt", "-gk", "-gs", "--gen-seed", "--gen-key":
@@ -158,6 +162,8 @@ func proccesMode(filePath, keyPath, seedPath string, mode string, command string
 	switch mode {
 	case "ecb":
 		modes.PerformECB(filePath, key, seed, encrypt)
+	case "cbc":
+		modes.PerformCBC(filePath, key, seed, encrypt)
 	default:
 		fmt.Println("Invalid mode")
 		help.PrintHelp()
