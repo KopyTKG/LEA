@@ -65,6 +65,9 @@ func processArguments(args []string, argsList *list.List, filePath, keyPath, see
 		case arg == "-h" || arg == "--help":
 			help.PrintHelp()
 			os.Exit(1)
+		case arg == "-v" || arg == "--version":
+			help.Version()
+			os.Exit(1)
 		}
 	}
 	return validCommandFound, encrypted
