@@ -3,6 +3,7 @@ package utils
 import (
 	"encoding/binary"
 	"golang.org/x/crypto/sha3"
+	"crypto/sha1"
 )
 
 func check(e error) {
@@ -35,6 +36,19 @@ func FingerPrint256(data []byte) [8]uint32 {
     var hashArray [8]uint32
     for i := 0; i < 8; i++ {
         hashArray[i] = binary.BigEndian.Uint32(sum[i*4 : (i+1)*4])
+    }
+    return hashArray
+}
+
+// FingerPrint128String returns the SHA-128 hash of the input data as a string.
+func FingerPrint128(data []byte) [4]uint32 {
+    hasher := sha1.New()
+    _, err := hasher.Write(data)
+    check(err)
+    sum := hasher.Sum(nil)
+    var hashArray [4]uint32
+    for i := 0; i < 4; i++ {
+	    hashArray[i] = binary.BigEndian.Uint32(sum[i*4 : (i+1)*4])
     }
     return hashArray
 }
