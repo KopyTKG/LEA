@@ -17,6 +17,8 @@ func PrintHelp() {
 current version supports following modes:
     --ecb                       	Electronic Codebook mode (default)
     --cbc                       	Cipher Block Chaining mode
+    --cfb                       	Cipher Feedback mode
+    --ofb                       	Output Feedback mod
 
 If no options are provided, the file will be encrypted by default. 
 If nothing is provided at all lea will display help.
