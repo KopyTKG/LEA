@@ -67,10 +67,15 @@ func processArguments(args []string, argsList *utils.List, filePath, keyPath, se
 			help.Version()
 			os.Exit(1)
 
+		// Cypher modes
 		case arg == "--ecb":
 			mode = "ecb"
 		case arg == "--cbc":
 			mode = "cbc"
+		case arg == "--cfb":
+			mode = "cfb"
+		case arg == "--ofb":
+			mode = "ofb"
 		}
 	}
 	return validCommandFound, encrypted
@@ -163,6 +168,10 @@ func proccesMode(filePath, keyPath, seedPath string, mode string, command string
 		modes.PerformECB(filePath, key, seed, encrypt)
 	case "cbc":
 		modes.PerformCBC(filePath, key, seed, encrypt)
+	case "cfb":
+		modes.PerformCFB(filePath, key, seed, encrypt)
+	case "ofb":
+		modes.PerformOFB(filePath, key, seed, encrypt)
 	default:
 		fmt.Println("Invalid mode")
 		help.PrintHelp()
