@@ -22,9 +22,13 @@ func main() {
 	processArgs(args)
 }
 
+/* Main processing loop for arguments */
 func processArgs(args []string) {
-	filePath, keyPath, seedPath := "", "/tmp/key", "/tmp/seed"
+	// preset file paths
+	filePath, keyPath, seedPath := "", "", ""
 	argsList := utils.List{}
+
+	//
 	validCommandFound, encrypted := processArguments(args, &argsList, &filePath, &keyPath, &seedPath)
 
 	if argsList.Length() == 0 && filePath != "" {
@@ -45,21 +49,30 @@ func processArgs(args []string) {
 
 func processArguments(args []string, argsList *utils.List, filePath, keyPath, seedPath *string) (bool, bool) {
 	validCommandFound, encrypted := false, false
-
+	prev := ""
 	for _, arg := range args {
 		switch {
+		// encrypt command must be last
 		case arg == "-e" || arg == "-d" || arg == "--encrypt" || arg == "--decrypt":
 			argsList.Append(arg)
-		case arg == "-gk" || arg == "-gs" || arg == "--gen-key" || arg == "--gen-seed":
-			generateKeyOrSeed(argsList, arg)
+
+		// signal for key / seed file load
 		case arg == "-ek" || arg == "-es" || arg == "--external-key" || arg == "--external-seed":
-			handleExternalFiles(argsList, arg)
-		case strings.Contains(arg, ".key"):
-			*keyPath = updateFilePath(argsList, "--external-key", "-ek", arg, *keyPath)
-		case strings.Contains(arg, ".seed"):
-			*seedPath = updateFilePath(argsList, "--external-seed", "-es", arg, *seedPath)
-		case strings.Contains(arg, "."):
+			prev = arg
+
+		// seed / key handeling
+		case prev == "-ek" || prev == "--external-key":
+			prev = ""
+			*keyPath = arg
+		case prev == "-es" || prev == "--external-seed":
+			prev = ""
+			*seedPath = arg
+		
+		// source file handeling
+		case strings.Contains(arg, ".") && prev == "":
 			*filePath = arg
+
+		// console output for version and help
 		case arg == "-h" || arg == "--help":
 			help.PrintHelp()
 			os.Exit(1)
@@ -113,15 +126,6 @@ func handleExternalFiles(argsList *utils.List, arg string) {
 	}
 }
 
-func updateFilePath(argsList *utils.List, checkLongArg, checkShortArg, currentArg, defaultPath string) string {
-	if argsList.IndexOf(checkLongArg) != -1 {
-		return currentArg
-	}
-	if argsList.IndexOf(checkShortArg) != -1 {
-		return currentArg
-	}
-	return defaultPath
-}
 
 func processCommands(argsList utils.List, filePath, keyPath, seedPath string, validCommandFound, encrypted *bool) {
 	for _, arg := range argsList.Elements {

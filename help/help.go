@@ -3,14 +3,12 @@ package help
 import "fmt"
 
 func PrintHelp() {
-    helpText := `Usage: lea [file] ?[options]
+	helpText := `Usage: lea [file] ?[options]
 
-    -e, --encrypt               	Encrypt the source file
-    -d, --decrypt               	Decrypt the source file
-    -gk, --gen-key        		Generate an internal key and save it to /tmp/key
-    -gs, --gen-seed       		Generate an internal seed and save it to /tmp/seed
-    -ek, --external-key [file].key   	Provide an external key. SHA3-512 will do the rest. 
-    -es, --external-seed [file].seed 	Provide an external seed. SHA3-256 will do the rest. 
+  * -e, --encrypt               	Encrypt the source file
+  * -d, --decrypt               	Decrypt the source file
+  * -ek, --external-key [file]   	Provide an external any key file. 
+  * -es, --external-seed [file] 	Provide an external any seed file. 
     -h, --help                  	Display this help message
     -v, --version               	Display the version of lea
 
@@ -25,5 +23,5 @@ If nothing is provided at all lea will display help.
 
 Any errors please report to: <https://github.com/kopytkg/lea/issues>
 `
-    fmt.Print(helpText)
+	fmt.Print(helpText)
 }
