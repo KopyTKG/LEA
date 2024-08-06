@@ -19,22 +19,23 @@ func main() {
 		return
 	}
 
-	processArgs(args)
+	handleArgs(args)
 }
 
-/* Main processing loop for arguments */
-func processArgs(args []string) {
+/* Main handeling loop for arguments */
+func handleArgs(args []string) {
 	// preset file paths
 	filePath, keyPath, seedPath := "", "", ""
 	argsList := utils.List{}
 
-	//
-	validCommandFound, encrypted := processArguments(args, &argsList, &filePath, &keyPath, &seedPath)
+	// processing loop for args
+	processArguments(args, &argsList, &filePath, &keyPath, &seedPath)
 
 	if argsList.Length() == 0 && filePath != "" {
 		argsList.Append("-e")
 	}
 
+	validCommandFound, encrypted := false, false
 	processCommands(argsList, filePath, keyPath, seedPath, &validCommandFound, &encrypted)
 
 	if !validCommandFound {
@@ -42,13 +43,12 @@ func processArgs(args []string) {
 		help.PrintHelp()
 	}
 
-	if !encrypted && filePath != "" {
-		proccesMode(filePath, keyPath, seedPath, mode, "-e")
+	if !encrypted && filePath != "" && keyPath != "" && seedPath != "" {
+		executeMode(filePath, keyPath, seedPath, mode, "-e")
 	}
 }
 
-func processArguments(args []string, argsList *utils.List, filePath, keyPath, seedPath *string) (bool, bool) {
-	validCommandFound, encrypted := false, false
+func processArguments(args []string, argsList *utils.List, filePath, keyPath, seedPath *string) {
 	prev := ""
 	for _, arg := range args {
 		switch {
@@ -91,48 +91,16 @@ func processArguments(args []string, argsList *utils.List, filePath, keyPath, se
 			mode = "ofb"
 		}
 	}
-	return validCommandFound, encrypted
-}
-
-func generateKeyOrSeed(argsList *utils.List, arg string) {
-	index := -1
-	if arg == "--gen-seed" || arg == "-gs" {
-		index = argsList.IndexOf("--external-seed")
-		if index == -1 {
-			index = argsList.IndexOf("-es")
-		}
-	}
-	if arg == "--gen-key" || arg == "-gk" {
-		index = argsList.IndexOf("--external-key")
-		if index == -1 {
-			index = argsList.IndexOf("-ek")
-		}
-	}
-	if index == -1 {
-		argsList.Prepend(arg)
-	}
-}
-
-func handleExternalFiles(argsList *utils.List, arg string) {
-	if argsList.Length() > 0 {
-		if argsList.IndexOf("--gen-key") == -1 && (arg == "--external-key" || arg == "-ek") {
-			argsList.Prepend(arg)
-		}
-		if argsList.IndexOf("--gen-seed") == -1 && (arg == "--external-seed" || arg == "-es") {
-			argsList.Prepend(arg)
-		}
-	} else {
-		argsList.Prepend(arg)
-	}
 }
 
 
 func processCommands(argsList utils.List, filePath, keyPath, seedPath string, validCommandFound, encrypted *bool) {
 	for _, arg := range argsList.Elements {
 		switch arg {
-		case "-e", "-d", "--encrypt", "--decrypt", "-gk", "-gs", "--gen-seed", "--gen-key":
+		case "-e", "-d", "--encrypt", "--decrypt":
 			*validCommandFound = true
-			executeCommand(arg, filePath, keyPath, seedPath, encrypted)
+			*encrypted = true
+			executeMode(filePath, keyPath, seedPath, mode, arg)
 
 		case "--external-key", "--external-seed", "-ek", "-es":
 			*validCommandFound = true
@@ -140,21 +108,7 @@ func processCommands(argsList utils.List, filePath, keyPath, seedPath string, va
 	}
 }
 
-func executeCommand(command, filePath, keyPath, seedPath string, encrypted *bool) {
-	switch command {
-	case "-e", "--encrypt", "-d", "--decrypt":
-		*encrypted = true
-		proccesMode(filePath, keyPath, seedPath, mode, command)
-	case "-gs", "--gen-seed":
-		generator.GenerateConstants()
-		fmt.Println("Seed generated and saved to /tmp/seed")
-	case "-gk", "--gen-key":
-		generator.GenerateKey()
-		fmt.Println("Key generated and saved to /tmp/key")
-	}
-}
-
-func proccesMode(filePath, keyPath, seedPath string, mode string, command string) {
+func executeMode(filePath, keyPath, seedPath string, mode string, command string) {
 	var encrypt bool = false
 	key, seed := utils.GetKeyFile(keyPath), utils.GetSeedFile(seedPath)
 
