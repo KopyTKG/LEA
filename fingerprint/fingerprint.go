@@ -3,12 +3,13 @@ package fingerprint
 import (
 	"encoding/binary"
 	"golang.org/x/crypto/sha3"
+	"lea/types"
 )
 
 var UPPERMASK uint64 = 0xFFFFFFFF00000000
 var LOWERMASK uint64 = 0xFFFFFFFF
 
-func LoadSource(data []byte) [8]uint64 {
+func LoadSource(data []byte) types.SourceKey {
 	hasher := sha3.New512()
 	_, err := hasher.Write(data)
 
@@ -18,15 +19,15 @@ func LoadSource(data []byte) [8]uint64 {
 
 	sum := hasher.Sum(nil)
 
-	var hashArray [8]uint64
+	var hashArray types.SourceKey
 	for i := 0; i < 8; i++ {
 		hashArray[i] = binary.BigEndian.Uint64(sum[i*8 : (i+1)*8])
 	}
 	return hashArray
 }
 
-func Fingerprint128(source [8]uint64) [4]uint32 {
-	base := [4]uint32{}
+func Fingerprint128(source types.SourceKey) types.Key128 {
+	base := types.Key128{}
 
 	left := [2]uint64{source[0] ^ source[2], source[1] ^ source[3]}
 	right := [2]uint64{source[4] ^ source[6], source[5] ^ source[7]}
@@ -41,8 +42,9 @@ func Fingerprint128(source [8]uint64) [4]uint32 {
 	return base
 }
 
-func Fingerprint192(source [8]uint64) [6]uint32 {
-	base := [6]uint32{}
+func Fingerprint192(source types.SourceKey) types.Key192 {
+	base := types.Key192{}
+
 	left := source[2] ^ source[4]
 	right := source[3] ^ source[5]
 
@@ -65,8 +67,8 @@ func Fingerprint192(source [8]uint64) [6]uint32 {
 	return base
 }
 
-func Fingerprint256(source [8]uint64) [8]uint32 {
-	base := [8]uint32{}
+func Fingerprint256(source types.SourceKey) types.Key256 {
+	base := types.Key256{}
 
 	left := [2]uint64{source[0] ^ source[2], source[1] ^ source[3]}
 	right := [2]uint64{source[4] ^ source[6], source[5] ^ source[7]}
