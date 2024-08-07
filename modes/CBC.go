@@ -1,113 +1,39 @@
 package modes
 
 import (
-	"bufio"
-	"fmt"
 	"lea/bitops"
 	"lea/core"
-	"lea/errors"
-	"lea/fingerprint"
-	"lea/schedule"
 	"lea/stream"
-	"lea/utils"
-	"os"
+	"fmt"
 )
 
-func PerformCBC(filePath string, bKey []byte, bSeed []byte, encrypt bool, keySize int) {
-	chunks := stream.BinaryChunkStream(filePath)
+func encryptCBC(filePath string, prev *[4]uint32, keySegments []uint32, chunks [4]uint32, size int) {
+	after := bitops.MultiXOR32(chunks, *(prev))
+	encryptedSlice := core.SelectEncrypt(after, keySegments, size) 
 	
-	kChunks := fingerprint.LoadSource(bKey)
-	sChunks := fingerprint.LoadSource(bSeed)
+	*prev = [4]uint32(encryptedSlice)
 	
-        key := fingerprint.SelectPrint(kChunks, keySize)
-        seed := fingerprint.SelectPrint(sChunks, keySize)
-
-	rk := schedule.KeySchedule(keySize, key, seed)
-
-	var blocks [4]uint32
-	
-	if encrypt {
-		encryptCBC(filePath, blocks, rk, chunks, keySize)
-	} else {
-		decryptCBC(filePath, blocks, rk, chunks, keySize)
+	if err := stream.WriteBinaryStreamv2(filePath, *prev); err != nil {
+		fmt.Printf("Error writing to binary stream: %v\n", err)	
 	}
-
 }
 
-func encryptCBC(filePath string, blocks [4]uint32, keySegments []uint32, chunks []uint32, size int) {
-	reader := bufio.NewReader(os.Stdin)
-
-	fmt.Println("Encrypting", filePath)	
-	var encChunks []uint32
-	// ask user for IV through stdin
-	fmt.Println("Please provide an IV: ")
-	input, _ := reader.ReadString('\n')
-	input = input[:len(input)-1]
+func decryptCBC(filePath string, prev *[4]uint32, keySegments []uint32, chunks [4]uint32, size int, last bool, IV [4]uint32) {
+	current := core.SelectDecrypt(chunks, keySegments, size)
 	
-	
-
-	// conver the input to a slice of uint32
-	var IV [4]uint32 = fingerprint.Fingerprint128(fingerprint.LoadSource([]byte(input)))
-
-	var prev [4]uint32 = IV
-	for i := 0; i < len(chunks); i++ {
-		blocks[i%4] = chunks[i]
-		if (i+1)%4 == 0 {
-			after :=  bitops.MultiXOR32(blocks, prev)
-			encryptedBlock := core.SelectEncrypt(after, keySegments, size)
-			encChunks = append(encChunks, encryptedBlock[:]...)
-			prev = [4]uint32(encryptedBlock)
+	if *prev != [4]uint32{}{
+		base := bitops.MultiXOR32(*prev, chunks)
+		if err := stream.PrepWriteBinaryStream(filePath, base); err != nil {
+			fmt.Printf("Error prepending to binary stream: %v\n", err)
 		}
 	}
 	
-	if len(chunks)%4 != 0 {
-		errors.PaddingError()
-	}
-	stream.WriteBinaryStream(filePath, encChunks)
-}
+	*prev = [4]uint32(current)
 
-
-
-func decryptCBC(filePath string, blocks [4]uint32, keySegments []uint32, chunks []uint32, size int) {
-	reader := bufio.NewReader(os.Stdin)
-
-	fmt.Println("Encrypting", filePath)	
-	var encChunks []uint32
-	// ask user for IV through stdin
-	fmt.Println("Please provide an IV: ")
-	input, _ := reader.ReadString('\n')
-	input = input[:len(input)-1]
-	
-	
-
-	// conver the input to a slice of uint32
-	var IV [4]uint32 = fingerprint.Fingerprint128(fingerprint.LoadSource([]byte(input)))
-	
-	var stackedBlocks utils.Stack = utils.Stack{}
-	var flushStack utils.Stack = utils.Stack{}
-
-	for i := 0; i < len(chunks); i++ {
-		blocks[i%4] = chunks[i]
-		if (i+1)%4 == 0 {
-			stackedBlocks.Append(blocks)		
+	if last {
+		base := bitops.MultiXOR32(*prev, IV)
+		if err := stream.PrepWriteBinaryStream(filePath, base); err != nil {
+			fmt.Printf("Error prepending to binary stream: %v\n", err)
 		}
 	}
-	for stackedBlocks.Length() > 0 {
-		currentBlock := stackedBlocks.Pop()
-		decryptedBlock := core.SelectDecrypt(currentBlock, keySegments, size)
-		next := IV
-		if stackedBlocks.Length() != 0 {next= stackedBlocks.Peek()}
-		base := bitops.MultiXOR32([4]uint32(decryptedBlock), next)
-		flushStack.Append(base)
-	}
-	for flushStack.Length() > 0 {
-		el := flushStack.Pop()
-		encChunks = append(encChunks, el[:]...)
-	}
-
-	if len(chunks)%4 != 0 {
-		errors.PaddingError()
-	}
-	stream.WriteBinaryStream(filePath, encChunks)
 }
-

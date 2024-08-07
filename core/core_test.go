@@ -61,3 +61,60 @@ func TestEnc256(t *testing.T) {
 	}
 
 }
+
+func TestSelect128(t *testing.T) {
+	b := []byte{1,2,3}
+	size := 128
+	k := fingerprint.LoadSource(b)
+	kp := fingerprint.SelectPrint(k, size)
+	rk := schedule.KeySchedule(size, kp, kp)
+	
+	base := [4]uint32{10,20,30,40}
+	enc := SelectEncrypt(base, rk, size)
+
+	dec := SelectDecrypt([4]uint32(enc), rk, size)
+
+	for i := 0 ; i < len(base); i++ {
+		if base[i] != dec[i] {
+			t.Errorf("%d is not same as %d", base[i] , dec[i])
+		}
+	}
+}
+
+func TestSelect192(t *testing.T) {
+	b := []byte{1,2,3}
+	size := 192
+	k := fingerprint.LoadSource(b)
+	kp := fingerprint.SelectPrint(k, size)
+	rk := schedule.KeySchedule(size, kp, kp)
+	
+	base := [4]uint32{10,20,30,40}
+	enc := SelectEncrypt(base, rk, size)
+
+	dec := SelectDecrypt([4]uint32(enc), rk, size)
+
+	for i := 0 ; i < len(base); i++ {
+		if base[i] != dec[i] {
+			t.Errorf("%d is not same as %d", base[i] , dec[i])
+		}
+	}
+}
+
+func TestSelect256(t *testing.T) {
+	b := []byte{1,2,3}
+	size := 256
+	k := fingerprint.LoadSource(b)
+	kp := fingerprint.SelectPrint(k, size)
+	rk := schedule.KeySchedule(size, kp, kp)
+	
+	base := [4]uint32{10,20,30,40}
+	enc := SelectEncrypt(base, rk, size)
+
+	dec := SelectDecrypt([4]uint32(enc), rk, size)
+
+	for i := 0 ; i < len(base); i++ {
+		if base[i] != dec[i] {
+			t.Errorf("%d is not same as %d", base[i] , dec[i])
+		}
+	}
+}
