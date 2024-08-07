@@ -26,6 +26,23 @@ func LoadSource(data []byte) types.SourceKey {
 	return hashArray
 }
 
+func SelectPrint(source types.SourceKey, size int) []uint32 {
+ switch size {
+ 	case 128:
+		k := Fingerprint128(source)
+		return k[:]
+	case 192:
+		k := Fingerprint192(source)
+		return k[:]
+	case 256:
+		k := Fingerprint256(source)
+		return k[:]
+
+	default:
+		return []uint32{}
+ }
+}
+
 func Fingerprint128(source types.SourceKey) types.Key128 {
 	base := types.Key128{}
 

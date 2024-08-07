@@ -18,6 +18,11 @@ current version supports following modes:
     --cfb                       	Cipher Feedback mode
     --ofb                       	Output Feedback mod
 
+key length:
+    --128				Basic 128bit key and seed (default)
+    --192				
+    --256				Recommended
+
 If no options are provided, the file will be encrypted by default. 
 If nothing is provided at all lea will display help.
 

@@ -4,7 +4,7 @@ import (
 	"lea/bitops"
 )
 
-func KeySchedule(size uint32, key, seed []uint32) []uint32 {
+func KeySchedule(size int, key, seed []uint32) []uint32 {
 	switch size {
 	case 128:
 		k := [4]uint32{}
@@ -33,7 +33,7 @@ func KeySchedule(size uint32, key, seed []uint32) []uint32 {
 }
 
 // Function failsafe
-func CheckLen(item []uint32, lenght int) bool {
+func checkLen(item []uint32, lenght int) bool {
 	if len(item) == lenght {
 		return true
 	}
@@ -43,8 +43,8 @@ func CheckLen(item []uint32, lenght int) bool {
 func Schedule128(key, seed [4]uint32) [144]uint32 {
 	size := 4
 	// Lenght validation
-	CheckLen(key[:], size)
-	CheckLen(seed[:], size)
+	checkLen(key[:], size)
+	checkLen(seed[:], size)
 
 	rk := [144]uint32{}
 	for i := 0; i < size; i++ {
@@ -79,8 +79,8 @@ func Schedule128(key, seed [4]uint32) [144]uint32 {
 func Schedule192(key, seed [6]uint32) [168]uint32 {
 	size := 6
 	// Lenght validation
-	CheckLen(key[:], size)
-	CheckLen(seed[:], size)
+	checkLen(key[:], size)
+	checkLen(seed[:], size)
 
 	rk := [168]uint32{}
 	for i := 0; i < size; i++ {
@@ -113,8 +113,8 @@ func Schedule192(key, seed [6]uint32) [168]uint32 {
 func Schedule256(key, seed [8]uint32) [192]uint32 {
 	size := 8
 	// Lenght validation
-	CheckLen(key[:], size)
-	CheckLen(seed[:], size)
+	checkLen(key[:], size)
+	checkLen(seed[:], size)
 
 	rk := [192]uint32{}
 	for i := 0; i < size; i++ {

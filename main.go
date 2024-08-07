@@ -2,15 +2,17 @@ package main
 
 import (
 	"fmt"
-	"lea/generator"
 	"lea/help"
 	"lea/modes"
+	"lea/stream"
 	"lea/utils"
+	"log"
 	"os"
 	"strings"
 )
 
 var mode string = "ecb"
+var key int = 128
 
 func main() {
 	args := os.Args[1:]
@@ -89,6 +91,14 @@ func processArguments(args []string, argsList *utils.List, filePath, keyPath, se
 			mode = "cfb"
 		case arg == "--ofb":
 			mode = "ofb"
+
+		// Key lenght
+		case arg == "--128":
+			key = 128
+		case arg == "--192":
+			key = 192
+		case arg == "--256":
+			key = 256
 		}
 	}
 }
@@ -110,28 +120,29 @@ func processCommands(argsList utils.List, filePath, keyPath, seedPath string, va
 
 func executeMode(filePath, keyPath, seedPath string, mode string, command string) {
 	var encrypt bool = false
-	key, seed := utils.GetKeyFile(keyPath), utils.GetSeedFile(seedPath)
+	bKey, bSeed := stream.GetFile(keyPath), stream.GetFile(seedPath)
 
-	if command == "-e" || command == "--encrypt" {
+	if command == "-e" || command == "--encrypt"  {
 		encrypt = true
 	}
 	if filePath == "" {
-		fmt.Println("No file path provided")
+		log.Fatalln("No file path provided")
 		help.PrintHelp()
 		os.Exit(1)
 	}
 
 	switch mode {
 	case "ecb":
-		modes.PerformECB(filePath, key, seed, encrypt)
+		modes.PerformECB(filePath, bKey, bSeed, encrypt, key)
 	case "cbc":
-		modes.PerformCBC(filePath, key, seed, encrypt)
+		modes.PerformCBC(filePath, bKey, bSeed, encrypt, key)
 	case "cfb":
-		modes.PerformCFB(filePath, key, seed, encrypt)
+		modes.PerformCFB(filePath, bKey, bSeed, encrypt, key)
 	case "ofb":
-		modes.PerformOFB(filePath, key, seed, encrypt)
+		modes.PerformOFB(filePath, bKey, bSeed, encrypt, key)
 	default:
-		fmt.Println("Invalid mode")
+		log.Fatalln("Invalid mode")
 		help.PrintHelp()
+		os.Exit(1)
 	}
 }
