@@ -1,30 +1,40 @@
 package modes
 
 import (
+	"bufio"
 	"fmt"
-	"lea/encryption"
+	"lea/bitops"
+	"lea/core"
+	"lea/errors"
+	"lea/fingerprint"
+	"lea/schedule"
 	"lea/stream"
 	"lea/utils"
-	"lea/errors"
-	"lea/bitops"
 	"os"
-	"bufio"
 )
 
-func PerformCBC(filePath string, key [16]uint32, seed [8]uint32, encrypt bool) {
+func PerformCBC(filePath string, bKey []byte, bSeed []byte, encrypt bool, keySize int) {
 	chunks := stream.BinaryChunkStream(filePath)
-	keySegments := encryption.Generate(key, seed)
+	
+	kChunks := fingerprint.LoadSource(bKey)
+	sChunks := fingerprint.LoadSource(bSeed)
+	
+        key := fingerprint.SelectPrint(kChunks, keySize)
+        seed := fingerprint.SelectPrint(sChunks, keySize)
+
+	rk := schedule.KeySchedule(keySize, key, seed)
+
 	var blocks [4]uint32
 	
 	if encrypt {
-		encryptCBC(filePath, blocks, keySegments, chunks)
+		encryptCBC(filePath, blocks, rk, chunks, keySize)
 	} else {
-		decryptCBC(filePath, blocks, keySegments, chunks)
+		decryptCBC(filePath, blocks, rk, chunks, keySize)
 	}
 
 }
 
-func encryptCBC(filePath string, blocks [4]uint32, keySegments [144]uint32, chunks []uint32) {
+func encryptCBC(filePath string, blocks [4]uint32, keySegments []uint32, chunks []uint32, size int) {
 	reader := bufio.NewReader(os.Stdin)
 
 	fmt.Println("Encrypting", filePath)	
@@ -37,15 +47,16 @@ func encryptCBC(filePath string, blocks [4]uint32, keySegments [144]uint32, chun
 	
 
 	// conver the input to a slice of uint32
-	var IV [4]uint32 = utils.FingerPrint128([]byte(input))
+	var IV [4]uint32 = fingerprint.Fingerprint128(fingerprint.LoadSource([]byte(input)))
+
 	var prev [4]uint32 = IV
 	for i := 0; i < len(chunks); i++ {
 		blocks[i%4] = chunks[i]
 		if (i+1)%4 == 0 {
-			after :=  bitops.MultiXOR64(blocks, prev)
-			encryptedBlock := encryption.EncryptBlock(after, keySegments)
+			after :=  bitops.MultiXOR32(blocks, prev)
+			encryptedBlock := core.SelectEncrypt(after, keySegments, size)
 			encChunks = append(encChunks, encryptedBlock[:]...)
-			prev = encryptedBlock
+			prev = [4]uint32(encryptedBlock)
 		}
 	}
 	
@@ -57,7 +68,7 @@ func encryptCBC(filePath string, blocks [4]uint32, keySegments [144]uint32, chun
 
 
 
-func decryptCBC(filePath string, blocks [4]uint32, keySegments [144]uint32, chunks []uint32) {
+func decryptCBC(filePath string, blocks [4]uint32, keySegments []uint32, chunks []uint32, size int) {
 	reader := bufio.NewReader(os.Stdin)
 
 	fmt.Println("Encrypting", filePath)	
@@ -70,7 +81,7 @@ func decryptCBC(filePath string, blocks [4]uint32, keySegments [144]uint32, chun
 	
 
 	// conver the input to a slice of uint32
-	var IV [4]uint32 = utils.FingerPrint128([]byte(input))
+	var IV [4]uint32 = fingerprint.Fingerprint128(fingerprint.LoadSource([]byte(input)))
 	
 	var stackedBlocks utils.Stack = utils.Stack{}
 	var flushStack utils.Stack = utils.Stack{}
@@ -83,10 +94,10 @@ func decryptCBC(filePath string, blocks [4]uint32, keySegments [144]uint32, chun
 	}
 	for stackedBlocks.Length() > 0 {
 		currentBlock := stackedBlocks.Pop()
-		decryptedBlock := encryption.DecryptBlock(currentBlock, keySegments)
+		decryptedBlock := core.SelectDecrypt(currentBlock, keySegments, size)
 		next := IV
 		if stackedBlocks.Length() != 0 {next= stackedBlocks.Peek()}
-		base := bitops.MultiXOR64(decryptedBlock, next)
+		base := bitops.MultiXOR32([4]uint32(decryptedBlock), next)
 		flushStack.Append(base)
 	}
 	for flushStack.Length() > 0 {

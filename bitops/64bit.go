@@ -38,9 +38,9 @@ func CountBits64(x uint64) int {
 	return int(x & 0x7F)
 }
 
-func MultiXOR64(a, b [4]uint32) [4]uint32 {
-	var result [4]uint32
-	for i := 0; i < 4; i++ {
+func MultiXOR64(a, b []uint64) []uint64 {
+	var result []uint64
+	for i := 0; i < len(a); i++ {
 		result[i] = a[i] ^ b[i]
 	}
 	return result

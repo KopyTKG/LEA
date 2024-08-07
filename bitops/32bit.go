@@ -36,3 +36,18 @@ func CountBits32(x uint32) int {
 	return int(x & 0x3F)
 }
 
+func ShiftLeft32(x uint32, n uint) uint32 {
+	return x << uint32(n) 
+}
+
+func ShiftRight32(x uint32, n uint) uint32 {
+	return x >> uint32(n)
+}
+
+func MultiXOR32(a, b [4]uint32) [4]uint32 {
+	var result [4]uint32
+	for i := 0; i < len(a); i++ {
+		result[i] = a[i] ^ b[i]
+	}
+	return result
+}

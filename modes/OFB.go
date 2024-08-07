@@ -1,30 +1,39 @@
 package modes
 
 import (
-	"fmt"
-	"lea/encryption"
-	"lea/stream"
-	"lea/utils"
-	"lea/errors"
-	"lea/bitops"
-	"os"
 	"bufio"
+	"fmt"
+	"lea/bitops"
+	"lea/core"
+	"lea/errors"
+	"lea/fingerprint"
+	"lea/schedule"
+	"lea/stream"
+	"os"
 )
 
-func PerformOFB(filePath string, key [16]uint32, seed [8]uint32, encrypt bool) {
+func PerformOFB(filePath string, bKey []byte, bSeed []byte, encrypt bool, keySize int) {
 	chunks := stream.BinaryChunkStream(filePath)
-	keySegments := encryption.Generate(key, seed)
+	
+	kChunks := fingerprint.LoadSource(bKey)
+	sChunks := fingerprint.LoadSource(bSeed)
+	
+        key := fingerprint.SelectPrint(kChunks, keySize)
+        seed := fingerprint.SelectPrint(sChunks, keySize)
+
+	rk := schedule.KeySchedule(keySize, key, seed)
+
 	var blocks [4]uint32
 	
 	if encrypt {
-		encryptOFB(filePath, blocks, keySegments, chunks)
+		encryptOFB(filePath, blocks, rk, chunks, keySize)
 	} else {
-		decryptOFB(filePath, blocks, keySegments, chunks)
+		decryptOFB(filePath, blocks, rk, chunks, keySize)
 	}
 
 }
 
-func encryptOFB(filePath string, blocks [4]uint32, keySegments [144]uint32, chunks []uint32) {
+func encryptOFB(filePath string, blocks [4]uint32, keySegments []uint32, chunks []uint32, size int) {
 	reader := bufio.NewReader(os.Stdin)
 
 	fmt.Println("Encrypting", filePath)	
@@ -35,13 +44,14 @@ func encryptOFB(filePath string, blocks [4]uint32, keySegments [144]uint32, chun
 	input = input[:len(input)-1]
 	
 	// conver the input to a slice of uint32
-	var IV [4]uint32 = utils.FingerPrint128([]byte(input))
+	var IV [4]uint32 = fingerprint.Fingerprint128(fingerprint.LoadSource([]byte(input)))
+
 	var prev [4]uint32 = IV
 	for i := 0; i < len(chunks); i++ {
 		blocks[i%4] = chunks[i]
 		if (i+1)%4 == 0 {
-			prev = encryption.EncryptBlock(prev, keySegments)
-			encryptedBlock := bitops.MultiXOR64(prev, blocks)
+			prev = [4]uint32(core.SelectEncrypt(prev, keySegments, size))
+			encryptedBlock := bitops.MultiXOR32(prev, blocks)
 			encChunks = append(encChunks, encryptedBlock[:]...)
 		}
 	}
@@ -52,7 +62,7 @@ func encryptOFB(filePath string, blocks [4]uint32, keySegments [144]uint32, chun
 	stream.WriteBinaryStream(filePath, encChunks)
 }
 
-func decryptOFB(filePath string, blocks [4]uint32, keySegments [144]uint32, chunks []uint32) {
+func decryptOFB(filePath string, blocks [4]uint32, keySegments []uint32, chunks []uint32, size int) {
 	reader := bufio.NewReader(os.Stdin)
 
 	fmt.Println("Encrypting", filePath)	
@@ -65,13 +75,14 @@ func decryptOFB(filePath string, blocks [4]uint32, keySegments [144]uint32, chun
 	
 
 	// conver the input to a slice of uint32
-	var IV [4]uint32 = utils.FingerPrint128([]byte(input))
+	var IV [4]uint32 = fingerprint.Fingerprint128(fingerprint.LoadSource([]byte(input)))
+
 	var prev [4]uint32 = IV	
 	for i := 0; i < len(chunks); i++ {
 		blocks[i%4] = chunks[i]
 		if (i+1)%4 == 0 {
-			prev = encryption.EncryptBlock(prev, keySegments)
-			encryptedBlock := bitops.MultiXOR64(prev, blocks)
+			prev = [4]uint32(core.SelectEncrypt(prev, keySegments, size))
+			encryptedBlock := bitops.MultiXOR32(prev, blocks)
 			encChunks = append(encChunks, encryptedBlock[:]...)
 		}
 	}
