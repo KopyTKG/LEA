@@ -7,7 +7,6 @@ This is uni project for subject KI-ZKR. The goal is to implement LEA algorithm i
 
 <h2> :exclamation::exclamation::exclamation:Disclaimer:exclamation::exclamation::exclamation:</h2>
 This is a project for educational purposes only. Do not use this app for any sensitive data. Please use this app with caution.
-As of now, my implementation only supports 128-bit key as for modes it runs only in ECB. I will add more modes in the future.
 
 <h2> Usage </h2>
 
