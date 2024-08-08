@@ -15,6 +15,7 @@ func encryptOFB(filePath string, prev *[4]uint32, keySegments []uint32, chunks [
 		fmt.Printf("Error writing to binary stream: %v\n", err)
 	}
 }
+
 func decryptOFB(filePath string, prev *[4]uint32, keySegments []uint32, chunks [4]uint32, size int) {
 	encryptOFB(filePath, prev, keySegments, chunks, size)
 }

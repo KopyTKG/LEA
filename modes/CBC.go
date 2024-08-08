@@ -18,22 +18,16 @@ func encryptCBC(filePath string, prev *[4]uint32, keySegments []uint32, chunks [
 	}
 }
 
-func decryptCBC(filePath string, prev *[4]uint32, keySegments []uint32, chunks [4]uint32, size int, last bool, IV [4]uint32) {
-	current := core.SelectDecrypt(chunks, keySegments, size)
-	
-	if *prev != [4]uint32{}{
-		base := bitops.MultiXOR32(*prev, chunks)
-		if err := stream.PrepWriteBinaryStream(filePath, base); err != nil {
-			fmt.Printf("Error prepending to binary stream: %v\n", err)
-		}
-	}
-	
-	*prev = [4]uint32(current)
+func decryptCBC(filePath string, prev *[4]uint32, keySegments []uint32, chunks [4]uint32, size int) {
 
-	if last {
-		base := bitops.MultiXOR32(*prev, IV)
-		if err := stream.PrepWriteBinaryStream(filePath, base); err != nil {
-			fmt.Printf("Error prepending to binary stream: %v\n", err)
-		}
+	encB := core.SelectDecrypt(chunks, keySegments, size)
+	text := bitops.MultiXOR32([4]uint32(encB), *prev)
+	
+	*prev = chunks
+
+	if err := stream.WriteBinaryStream(filePath, text); err != nil {
+		fmt.Printf("Error writing to binary stream: %v\n", err)	
 	}
+
+
 }
