@@ -5,7 +5,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
-	"log"
 	"os"
 )
 
@@ -49,33 +48,7 @@ func BinaryChunkStream(path string) []uint32 {
 }
 
 // WriteBinaryStream writes a slice of uint32 to a binary file
-func WriteBinaryStream(fileName string, data []uint32) {
-	bytes := make([]byte, len(data)*4)
-	for i, val := range data {
-		binary.LittleEndian.PutUint32(bytes[i*4:(i+1)*4], val)
-	}
-
-	file, err := os.OpenFile(fileName, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0666)
-	if err != nil {
-		log.Fatalf("Failed to create file: %v\n", err)
-		return
-	}
-	defer file.Close()
-
-	writer := bufio.NewWriter(file)
-	_, err = writer.Write(bytes)
-	if err != nil {
-		log.Fatalf("Failed to write bytes: %v\n", err)
-		return
-	}
-
-	if err := writer.Flush(); err != nil {
-		log.Fatalf("Failed to flush writer: %v\n", err)
-	}
-
-}
-
-func WriteBinaryStreamv2(filePath string, data [4]uint32) error {
+func WriteBinaryStream(filePath string, data [4]uint32) error {
 	// Convert the data to bytes
 	bytes := make([]byte, 16)
 	for i, val := range data {

@@ -42,7 +42,7 @@ func PerformMode(mode, filePath string, bKey, bSeed []byte, encrypt bool, keySiz
 		IV = fingerprint.Fingerprint128(fingerprint.LoadSource([]byte(input)))
 	}
 
-	if encrypt {
+	if encrypt || mode == "ofb" {
 		prev = IV
 		buf := make([]byte, 4)
 
@@ -145,6 +145,13 @@ func loop(mode, filePath string, rk []uint32, chunks [4]uint32, prev *[4]uint32,
 			encryptCFB(filePath, prev, rk, chunks, keySize)
 		} else {
 			decryptCFB(filePath, prev, rk, chunks, keySize, last, IV)
+		}
+
+	case "ofb":
+		if encrypt {
+			encryptOFB(filePath, prev, rk, chunks, keySize)
+		} else {
+			encryptOFB(filePath, prev, rk, chunks, keySize)
 		}
 	}
 }

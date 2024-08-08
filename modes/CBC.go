@@ -13,7 +13,7 @@ func encryptCBC(filePath string, prev *[4]uint32, keySegments []uint32, chunks [
 	
 	*prev = [4]uint32(encryptedSlice)
 	
-	if err := stream.WriteBinaryStreamv2(filePath, *prev); err != nil {
+	if err := stream.WriteBinaryStream(filePath, *prev); err != nil {
 		fmt.Printf("Error writing to binary stream: %v\n", err)	
 	}
 }
