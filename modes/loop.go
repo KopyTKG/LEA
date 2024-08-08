@@ -139,5 +139,12 @@ func loop(mode, filePath string, rk []uint32, chunks [4]uint32, prev *[4]uint32,
 		} else {
 			decryptCBC(filePath, prev, rk, chunks, keySize, last, IV)
 		}
+
+	case "cfb":
+		if encrypt {
+			encryptCFB(filePath, prev, rk, chunks, keySize)
+		} else {
+			decryptCFB(filePath, prev, rk, chunks, keySize, last, IV)
+		}
 	}
 }

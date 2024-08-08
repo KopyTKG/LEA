@@ -132,10 +132,8 @@ func executeMode(filePath, keyPath, seedPath string, mode string, command string
 	}
 
 	switch {
-	case mode == "ecb" || mode == "cbc":
+	case mode == "ecb" || mode == "cbc" || mode == "cfb":
 		modes.PerformMode(mode, filePath, bKey, bSeed, encrypt, key)
-	case mode == "cfb":
-		modes.PerformCFB(filePath, bKey, bSeed, encrypt, key)
 	case mode == "ofb":
 		modes.PerformOFB(filePath, bKey, bSeed, encrypt, key)
 	default:
