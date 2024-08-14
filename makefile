@@ -1,14 +1,12 @@
 #Make file used for compilation and installation of LEA
 
 install:
-	go get
+	go get -u
+	go build
+	sudo cp lea /usr/bin
 
 build:
+	go get -u
 	go build
 
-sysinstall:
-	sudo cp lea /usr/bin/
-
-all: install build sysinstall
-
-.PHONY: install build sysinstall all 
+.PHONY: install build
