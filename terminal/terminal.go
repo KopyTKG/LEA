@@ -29,10 +29,31 @@ type Rendering struct {
 }
 
 func (r *Rendering) Run() {
+	logo := []string{
+		" ___           _______       ________     ",
+		"|\\  \\         |\\  ___ \\     |\\   __  \\    ",
+		"\\ \\  \\        \\ \\   __/|    \\ \\  \\|\\  \\   ",
+		" \\ \\  \\        \\ \\  \\_|/__   \\ \\   __  \\  ",
+		"  \\ \\  \\____    \\ \\  \\_|\\ \\   \\ \\  \\ \\  \\ ",
+		"   \\ \\_______\\   \\ \\_______\\   \\ \\__\\ \\__\\",
+		"    \\|_______|    \\|_______|    \\|__|\\|__|",
+		"                                          ",
+	}
 	g := ui.NewGrid()
 	termWidth, termHeight := ui.TerminalDimensions()
-	g.SetRect(0, 0, termWidth-1, termHeight-1)
+	g.SetRect(0, termHeight/4-1, termWidth-1, (termHeight/4)*3-1)
 	g.Border = true
+
+	g1 := ui.NewGrid()
+	g1.SetRect(0, 0, termWidth-1, termHeight/4)
+	g1.Border = true
+	logoText := widgets.NewParagraph()
+
+	logoText.Text = ""
+	for _, line := range logo {
+		logoText.Text += line + "\n"
+	}
+	logoText.Border = false
 
 	fp := widgets.NewParagraph()
 	fp.Text = r.File.FP
@@ -50,6 +71,10 @@ func (r *Rendering) Run() {
 	per.SetRect(0, 0, (termWidth-1)/4, 1)
 	per.Border = false
 
+	g1.Set(
+		ui.NewRow(1.0, ui.NewCol(1.0, logoText)),
+	)
+
 	row := ui.NewRow(1.0,
 		ui.NewCol(0.25, fp),
 		ui.NewCol(0.5, bar),
@@ -57,7 +82,7 @@ func (r *Rendering) Run() {
 	)
 
 	g.Set(row)
-	ui.Render(g)
+	ui.Render(g1, g)
 }
 
 func push(arr *[]rune, item rune) {
