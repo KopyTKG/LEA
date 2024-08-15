@@ -1,6 +1,12 @@
 <h1> Light Encryption Algorithm (LEA) </h1>
 
-![GitHub License](https://img.shields.io/github/license/kopytkg/KI-ZKR)
+![GitHub License](https://img.shields.io/github/license/kopytkg/LEA)
+![GitHub License](https://img.shields.io/github/v/release/KopyTKG/LEA?label=Live) 
+![GitHub License](https://img.shields.io/github/v/release/KopyTKG/LEA?include_prereleases&sort=date&label=Dev) 
+
+
+
+
 
 <h2> Description </h2>
 This is uni project for subject KI-ZKR. The goal is to implement LEA algorithm in Go. This app is a linux cli app for simple encryption and decryption of files.
@@ -18,6 +24,8 @@ lea --help
 
 <h2> Building from source </h2>
 
+<h3> Linux </h3>
+
 ```bash
 # clone repo
 git clone https://github.com/kopytkg/LEA.git
@@ -25,16 +33,23 @@ git clone https://github.com/kopytkg/LEA.git
 # change directory
 cd LEA
 
-# install dependencies and build
-go get
-go build .
+# make build
+sudo make install
+```
+<h3> Other </h3>
 
-# if you want to use it globally
-sudo cp lea /usr/local/bin/lea
 
-# run
-lea --help
+```bash
+# clone repo
+git clone https://github.com/kopytkg/LEA.git
 
+# change directory
+cd LEA
+
+# run make
+make build
+
+# copy binary where ever you need
 ```
 
 
