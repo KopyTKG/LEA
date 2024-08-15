@@ -1,6 +1,7 @@
 package terminal
 
 import (
+	"lea/help"
 	"strconv"
 
 	ui "github.com/gizak/termui/v3"
@@ -38,6 +39,7 @@ func (r *Rendering) Run() {
 		"   \\ \\_______\\   \\ \\_______\\   \\ \\__\\ \\__\\",
 		"    \\|_______|    \\|_______|    \\|__|\\|__|",
 		"                                          ",
+		"by @KopyTKG " + help.VERSION,
 	}
 	g := ui.NewGrid()
 	termWidth, termHeight := ui.TerminalDimensions()

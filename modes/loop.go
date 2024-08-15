@@ -18,7 +18,7 @@ import (
 
 const chunkSize = 4
 
-func PerformMode(mode, filePath string, bKey, bSeed []byte, encrypt bool, keySize int) {
+func PerformMode(mode, filePath string, bKey, bSeed []byte, encrypt bool, keySize int, verbose *bool) {
 	kChunks := fingerprint.LoadSource(bKey)
 	sChunks := fingerprint.LoadSource(bSeed)
 	key := fingerprint.SelectPrint(kChunks, keySize)
@@ -43,32 +43,35 @@ func PerformMode(mode, filePath string, bKey, bSeed []byte, encrypt bool, keySiz
 
 		IV = fingerprint.Fingerprint128(fingerprint.LoadSource([]byte(input)))
 	}
+	r := terminal.Rendering{}
+	f := terminal.Fileln{}
+	if *verbose {
+		if err := ui.Init(); err != nil {
+			log.Fatalf("failed to initialize termui: %v", err)
+		}
 
-	if err := ui.Init(); err != nil {
-		log.Fatalf("failed to initialize termui: %v", err)
+		defer ui.Close()
+
+		fs, _ := file.Stat()
+		size := int(fs.Size())
+		w, _ := ui.TerminalDimensions()
+		bar := terminal.BarSetup((w - 5) / 2)
+		f = terminal.Fileln{
+			FP:    filePath,
+			Done:  0,
+			Total: size,
+			Bar:   bar,
+		}
+		r = terminal.Rendering{File: &f}
+
 	}
-
-	defer ui.Close()
-
-	fs, err := file.Stat()
-	size := int(fs.Size())
-	w, _ := ui.TerminalDimensions()
-	bar := terminal.BarSetup((w - 5) / 2)
-	f := terminal.Fileln{
-		FP:    filePath,
-		Done:  0,
-		Total: size,
-		Bar:   bar,
-	}
-	r := terminal.Rendering{File: &f}
-
 	prev = IV
-	readAndProcessFileInChunks(mode, tmpFilePath, rk, file, &prev, encrypt, keySize, &f, &r)
+	readAndProcessFileInChunks(mode, tmpFilePath, rk, file, &prev, encrypt, keySize, &f, &r, verbose)
 
 	cleanup(tmpFilePath, filePath)
 }
 
-func readAndProcessFileInChunks(mode string, tmpFilePath string, rk []uint32, file *os.File, prev *[4]uint32, encrypt bool, keySize int, f *terminal.Fileln, r *terminal.Rendering) {
+func readAndProcessFileInChunks(mode string, tmpFilePath string, rk []uint32, file *os.File, prev *[4]uint32, encrypt bool, keySize int, f *terminal.Fileln, r *terminal.Rendering, verbose *bool) {
 	reader := bufio.NewReader(file)
 	var chunks []uint32
 	buf := make([]byte, chunkSize)
@@ -96,9 +99,11 @@ func readAndProcessFileInChunks(mode string, tmpFilePath string, rk []uint32, fi
 			performAction(mode, tmpFilePath, rk, [4]uint32(chunks), prev, encrypt, keySize)
 			chunks = []uint32{}
 			count += 16
-			f.Update(count)
+			if *verbose {
+				f.Update(count)
+			}
 		}
-		if time.Since(lastRenderTime) > renderInterval {
+		if time.Since(lastRenderTime) > renderInterval && *verbose {
 			r.Run()
 			lastRenderTime = time.Now()
 		}
