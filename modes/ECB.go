@@ -6,7 +6,9 @@ import (
 	"lea/errors"
 	"lea/fingerprint"
 	"lea/schedule"
+	"lea/core"
 	"lea/stream"
+	"fmt"
 )
 
 func PerformECB(filePath string, bKey []byte, bSeed []byte, encrypt bool, keySize int) {
@@ -25,8 +27,11 @@ func PerformECB(filePath string, bKey []byte, bSeed []byte, encrypt bool, keySiz
 		encryptECB(filePath, blocks, rk, chunks, keySize)
 	} else {
 		decryptECB(filePath, blocks, rk, chunks, keySize)
+func encryptECB(filePath string, keySegments []uint32, chunks [4]uint32, size int) {
+	encryptedBlock := core.SelectEncrypt(chunks, keySegments, size)
+	if err := stream.WriteBinaryStream(filePath, [4]uint32(encryptedBlock)); err != nil {
+		fmt.Printf("Error writing to binary stream: %v\n", err)
 	}
-
 }
 
 func encryptECB(filePath string, blocks [4]uint32, keySegments []uint32, chunks []uint32, size int) {
@@ -59,4 +64,9 @@ func decryptECB(filePath string, blocks [4]uint32, keySegments []uint32, chunks 
 		errors.PaddingError()
 	}
 	stream.WriteBinaryStream(filePath, encChunks)
+func decryptECB(filePath string, keySegments []uint32, chunks [4]uint32, size int) {
+	encryptedBlock := core.SelectDecrypt(chunks, keySegments, size)
+	if err := stream.WriteBinaryStream(filePath, [4]uint32(encryptedBlock)); err != nil {
+		fmt.Printf("Error writing to binary stream: %v\n", err)
+	}
 }

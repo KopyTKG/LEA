@@ -31,8 +31,15 @@ func PerformCFB(filePath string, bKey []byte, bSeed []byte, encrypt bool, keySiz
 		encryptCFB(filePath, blocks, rk, chunks, keySize)
 	} else {
 		decryptCFB(filePath, blocks, rk, chunks, keySize)
-	}
+	"lea/stream"
+)
 
+func encryptCFB(filePath string, prev *[4]uint32, keySegments []uint32, chunks [4]uint32, size int) {
+	encB := [4]uint32(core.SelectEncrypt(*prev, keySegments, size))
+	*prev = bitops.MultiXOR32(encB, chunks)
+	if err := stream.WriteBinaryStream(filePath, *prev); err != nil {
+		fmt.Printf("Error writing to binary stream: %v\n", err)
+	}
 }
 
 
@@ -57,13 +64,14 @@ func encryptCFB(filePath string, blocks [4]uint32, keySegments []uint32, chunks 
 			prev = bitops.MultiXOR32(prev, blocks)
 			encChunks = append(encChunks, prev[:]...)
 		}
+func decryptCFB(filePath string, prev *[4]uint32, keySegments []uint32, chunks [4]uint32, size int) {
+	encB := [4]uint32(core.SelectEncrypt(*prev, keySegments, size))
+	text := bitops.MultiXOR32(encB, chunks)
+	if err := stream.WriteBinaryStream(filePath, text); err != nil {
+		fmt.Printf("Error prepending to binary stream: %v\n", err)
 	}
-	
-	if len(chunks)%4 != 0 {
-		errors.PaddingError()
-	}
-	stream.WriteBinaryStream(filePath, encChunks)
 
+	*prev = chunks
 
 }
 

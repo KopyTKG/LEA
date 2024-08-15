@@ -13,6 +13,7 @@ import (
 
 var mode string = "ecb"
 var key int = 128
+var key int = 256
 
 func main() {
 	args := os.Args[1:]
@@ -32,13 +33,31 @@ func handleArgs(args []string) {
 
 	// processing loop for args
 	processArguments(args, &argsList, &filePath, &keyPath, &seedPath)
+	verbose := false
+	argsList := utils.List{}
+
+	// processing loop for args
+	processArguments(args, &argsList, &filePath, &keyPath, &seedPath, &verbose)
 
 	if argsList.Length() == 0 && filePath != "" {
 		argsList.Append("-e")
 	}
+	
+	if keyPath == "" || seedPath == "" {
+		sw := ""
+		if keyPath == ""{
+			sw = "-ek"
+		} else {
+			sw = "-es"
+		}
 
 	validCommandFound, encrypted := false, false
 	processCommands(argsList, filePath, keyPath, seedPath, &validCommandFound, &encrypted)
+		log.Fatalf("Missing required switch (%s) run \"lea -h\"", sw)
+	}
+
+	validCommandFound, encrypted := false, false
+	processCommands(argsList, filePath, keyPath, seedPath, &validCommandFound, &encrypted, &verbose)
 
 	if !validCommandFound {
 		fmt.Println("Invalid command or file path")
@@ -51,6 +70,9 @@ func handleArgs(args []string) {
 }
 
 func processArguments(args []string, argsList *utils.List, filePath, keyPath, seedPath *string) {
+}
+
+func processArguments(args []string, argsList *utils.List, filePath, keyPath, seedPath *string, verbose *bool) {
 	prev := ""
 	for _, arg := range args {
 		switch {
@@ -78,9 +100,13 @@ func processArguments(args []string, argsList *utils.List, filePath, keyPath, se
 		case arg == "-h" || arg == "--help":
 			help.PrintHelp()
 			os.Exit(1)
-		case arg == "-v" || arg == "--version":
+		case arg == "--version":
 			help.Version()
 			os.Exit(1)
+
+		case arg == "-v" || arg == "--verbose":
+			*verbose = true
+
 
 		// Cypher modes
 		case arg == "--ecb":
@@ -99,18 +125,24 @@ func processArguments(args []string, argsList *utils.List, filePath, keyPath, se
 			key = 192
 		case arg == "--256":
 			key = 256
+
+		default:
+			log.Fatalf("Unknowed switch found (%s) run \"lea -h\"", arg)
+			os.Exit(1)
 		}
 	}
 }
 
 
 func processCommands(argsList utils.List, filePath, keyPath, seedPath string, validCommandFound, encrypted *bool) {
+func processCommands(argsList utils.List, filePath, keyPath, seedPath string, validCommandFound, encrypted *bool, verbose *bool) {
 	for _, arg := range argsList.Elements {
 		switch arg {
 		case "-e", "-d", "--encrypt", "--decrypt":
 			*validCommandFound = true
 			*encrypted = true
 			executeMode(filePath, keyPath, seedPath, mode, arg)
+			executeMode(filePath, keyPath, seedPath, mode, arg, verbose)
 
 		case "--external-key", "--external-seed", "-ek", "-es":
 			*validCommandFound = true
@@ -119,6 +151,7 @@ func processCommands(argsList utils.List, filePath, keyPath, seedPath string, va
 }
 
 func executeMode(filePath, keyPath, seedPath string, mode string, command string) {
+func executeMode(filePath, keyPath, seedPath string, mode string, command string, verbose *bool) {
 	var encrypt bool = false
 	bKey, bSeed := stream.GetFile(keyPath), stream.GetFile(seedPath)
 
@@ -140,6 +173,9 @@ func executeMode(filePath, keyPath, seedPath string, mode string, command string
 		modes.PerformCFB(filePath, bKey, bSeed, encrypt, key)
 	case "ofb":
 		modes.PerformOFB(filePath, bKey, bSeed, encrypt, key)
+	switch {
+	case mode == "ecb" || mode == "cbc" || mode == "cfb" || mode == "ofb":
+		modes.PerformMode(mode, filePath, bKey, bSeed, encrypt, key, verbose)
 	default:
 		log.Fatalln("Invalid mode")
 		help.PrintHelp()
