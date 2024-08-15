@@ -12,7 +12,6 @@ import (
 )
 
 var mode string = "ecb"
-var key int = 128
 var key int = 256
 
 func main() {
@@ -29,10 +28,6 @@ func main() {
 func handleArgs(args []string) {
 	// preset file paths
 	filePath, keyPath, seedPath := "", "", ""
-	argsList := utils.List{}
-
-	// processing loop for args
-	processArguments(args, &argsList, &filePath, &keyPath, &seedPath)
 	verbose := false
 	argsList := utils.List{}
 
@@ -51,8 +46,6 @@ func handleArgs(args []string) {
 			sw = "-es"
 		}
 
-	validCommandFound, encrypted := false, false
-	processCommands(argsList, filePath, keyPath, seedPath, &validCommandFound, &encrypted)
 		log.Fatalf("Missing required switch (%s) run \"lea -h\"", sw)
 	}
 
@@ -63,13 +56,6 @@ func handleArgs(args []string) {
 		fmt.Println("Invalid command or file path")
 		help.PrintHelp()
 	}
-
-	if !encrypted && filePath != "" && keyPath != "" && seedPath != "" {
-		executeMode(filePath, keyPath, seedPath, mode, "-e")
-	}
-}
-
-func processArguments(args []string, argsList *utils.List, filePath, keyPath, seedPath *string) {
 }
 
 func processArguments(args []string, argsList *utils.List, filePath, keyPath, seedPath *string, verbose *bool) {
@@ -134,14 +120,12 @@ func processArguments(args []string, argsList *utils.List, filePath, keyPath, se
 }
 
 
-func processCommands(argsList utils.List, filePath, keyPath, seedPath string, validCommandFound, encrypted *bool) {
 func processCommands(argsList utils.List, filePath, keyPath, seedPath string, validCommandFound, encrypted *bool, verbose *bool) {
 	for _, arg := range argsList.Elements {
 		switch arg {
 		case "-e", "-d", "--encrypt", "--decrypt":
 			*validCommandFound = true
 			*encrypted = true
-			executeMode(filePath, keyPath, seedPath, mode, arg)
 			executeMode(filePath, keyPath, seedPath, mode, arg, verbose)
 
 		case "--external-key", "--external-seed", "-ek", "-es":
@@ -150,7 +134,6 @@ func processCommands(argsList utils.List, filePath, keyPath, seedPath string, va
 	}
 }
 
-func executeMode(filePath, keyPath, seedPath string, mode string, command string) {
 func executeMode(filePath, keyPath, seedPath string, mode string, command string, verbose *bool) {
 	var encrypt bool = false
 	bKey, bSeed := stream.GetFile(keyPath), stream.GetFile(seedPath)
@@ -164,15 +147,6 @@ func executeMode(filePath, keyPath, seedPath string, mode string, command string
 		os.Exit(1)
 	}
 
-	switch mode {
-	case "ecb":
-		modes.PerformECB(filePath, bKey, bSeed, encrypt, key)
-	case "cbc":
-		modes.PerformCBC(filePath, bKey, bSeed, encrypt, key)
-	case "cfb":
-		modes.PerformCFB(filePath, bKey, bSeed, encrypt, key)
-	case "ofb":
-		modes.PerformOFB(filePath, bKey, bSeed, encrypt, key)
 	switch {
 	case mode == "ecb" || mode == "cbc" || mode == "cfb" || mode == "ofb":
 		modes.PerformMode(mode, filePath, bKey, bSeed, encrypt, key, verbose)
