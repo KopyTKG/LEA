@@ -1,7 +1,5 @@
 package stream
 
-
-import (
 import (
 	"bufio"
 	"io"
@@ -15,7 +13,6 @@ func GetFile(path string) []byte {
 		os.Exit(1)
 		return []byte{}
 	} else {
-		return BinaryStream(path)
 		file, err := os.Open(path)
 		if err != nil {
 			panic(err)
