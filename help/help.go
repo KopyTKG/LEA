@@ -32,8 +32,7 @@ If nothing is provided at all lea will display help.
 Any errors please report to: <https://github.com/kopytkg/lea/issues>
 
 usage
-
-&lea [file] --ek [file] --es [file] -e/-d [optional mode] [optional lenght]
+$ lea [file] --ek [file] --es [file] -e/-d [optional mode] [optional lenght]
 `
 	fmt.Print(helpText)
 }
