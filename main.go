@@ -145,7 +145,7 @@ func executeMode(filePath, keyPath, seedPath string, mode string, command string
 		log.Fatalln("No file path provided")
 		help.PrintHelp()
 		os.Exit(1)
-	}
+	} 
 
 	switch {
 	case mode == "ecb" || mode == "cbc" || mode == "cfb" || mode == "ofb":
