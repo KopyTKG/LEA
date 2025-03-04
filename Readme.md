@@ -1,4 +1,4 @@
-<h1> Light Encryption Algorithm (LEA) </h1>
+<h1> Lightweight Encryption Algorithm (LEA) </h1>
 
 ![GitHub License](https://img.shields.io/github/license/kopytkg/LEA)
 ![GitHub License](https://img.shields.io/github/v/release/KopyTKG/LEA?label=Live) 
