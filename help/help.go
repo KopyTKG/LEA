@@ -12,6 +12,7 @@ func PrintHelp() {
     -h, --help                  	Display this help message
     --version               		Display the version of lea
     -v, --verbose			Display progress screen
+    -r, --recursion			Use recursion for folder encryption
 
   * marks required switch
 
@@ -32,7 +33,7 @@ If nothing is provided at all lea will display help.
 Any errors please report to: <https://github.com/kopytkg/lea/issues>
 
 usage
-$ lea [file] --ek [file] --es [file] -e/-d [optional mode] [optional lenght]
+$ lea [file] -ek [file] -es [file] -e/-d [optional mode] [optional lenght]
 `
 	fmt.Print(helpText)
 }

@@ -4,15 +4,12 @@ import (
 	"fmt"
 	"lea/help"
 	"lea/modes"
+	"lea/state"
 	"lea/stream"
 	"lea/utils"
 	"log"
 	"os"
-	"strings"
 )
-
-var mode string = "ecb"
-var key int = 256
 
 func main() {
 	args := os.Args[1:]
@@ -27,20 +24,18 @@ func main() {
 /* Main handeling loop for arguments */
 func handleArgs(args []string) {
 	// preset file paths
-	filePath, keyPath, seedPath := "", "", ""
-	verbose := false
 	argsList := utils.List{}
 
 	// processing loop for args
-	processArguments(args, &argsList, &filePath, &keyPath, &seedPath, &verbose)
+	processArguments(args, &argsList)
 
-	if argsList.Length() == 0 && filePath != "" {
+	if argsList.Length() == 0 && state.FILEPATH != "" {
 		argsList.Append("-e")
 	}
-	
-	if keyPath == "" || seedPath == "" {
+
+	if state.KEYPATH == "" || state.SEEDPATH == "" {
 		sw := ""
-		if keyPath == ""{
+		if state.KEYPATH == "" {
 			sw = "-ek"
 		} else {
 			sw = "-es"
@@ -50,7 +45,7 @@ func handleArgs(args []string) {
 	}
 
 	validCommandFound, encrypted := false, false
-	processCommands(argsList, filePath, keyPath, seedPath, &validCommandFound, &encrypted, &verbose)
+	processCommands(argsList, &validCommandFound, &encrypted)
 
 	if !validCommandFound {
 		fmt.Println("Invalid command or file path")
@@ -58,9 +53,10 @@ func handleArgs(args []string) {
 	}
 }
 
-func processArguments(args []string, argsList *utils.List, filePath, keyPath, seedPath *string, verbose *bool) {
+func processArguments(args []string, argsList *utils.List) {
 	prev := ""
-	for _, arg := range args {
+	state.FILEPATH = args[0]
+	for _, arg := range args[1:] {
 		switch {
 		// encrypt command must be last
 		case arg == "-e" || arg == "-d" || arg == "--encrypt" || arg == "--decrypt":
@@ -73,14 +69,10 @@ func processArguments(args []string, argsList *utils.List, filePath, keyPath, se
 		// seed / key handeling
 		case prev == "-ek" || prev == "--external-key":
 			prev = ""
-			*keyPath = arg
+			state.KEYPATH = arg
 		case prev == "-es" || prev == "--external-seed":
 			prev = ""
-			*seedPath = arg
-		
-		// source file handeling
-		case strings.Contains(arg, ".") && prev == "":
-			*filePath = arg
+			state.SEEDPATH = arg
 
 		// console output for version and help
 		case arg == "-h" || arg == "--help":
@@ -90,27 +82,29 @@ func processArguments(args []string, argsList *utils.List, filePath, keyPath, se
 			help.Version()
 			os.Exit(1)
 
+		case arg == "-r" || arg == "--recursion":
+			state.RECURSION = true
+
 		case arg == "-v" || arg == "--verbose":
-			*verbose = true
+			state.VERBOSE = true
 
-
-		// Cypher modes
+		// Cypher state.CYPHERMODEs
 		case arg == "--ecb":
-			mode = "ecb"
+			state.CYPHERMODE = "ecb"
 		case arg == "--cbc":
-			mode = "cbc"
+			state.CYPHERMODE = "cbc"
 		case arg == "--cfb":
-			mode = "cfb"
+			state.CYPHERMODE = "cfb"
 		case arg == "--ofb":
-			mode = "ofb"
+			state.CYPHERMODE = "ofb"
 
 		// Key lenght
 		case arg == "--128":
-			key = 128
+			state.KEYLENGTH = 128
 		case arg == "--192":
-			key = 192
+			state.KEYLENGTH = 192
 		case arg == "--256":
-			key = 256
+			state.KEYLENGTH = 256
 
 		default:
 			log.Fatalf("Unknowed switch found (%s) run \"lea -h\"", arg)
@@ -119,14 +113,26 @@ func processArguments(args []string, argsList *utils.List, filePath, keyPath, se
 	}
 }
 
+func processCommands(argsList utils.List, validCommandFound, encrypted *bool) {
 
-func processCommands(argsList utils.List, filePath, keyPath, seedPath string, validCommandFound, encrypted *bool, verbose *bool) {
+	if state.RECURSION {
+		b, err := stream.IsFolder(state.FILEPATH)
+
+		if err != nil {
+			panic(err)
+		}
+
+		if !b {
+			log.Fatalf("Path (%s) must be folder for recursion operation\n", state.FILEPATH)
+		}
+	}
+
 	for _, arg := range argsList.Elements {
 		switch arg {
 		case "-e", "-d", "--encrypt", "--decrypt":
 			*validCommandFound = true
 			*encrypted = true
-			executeMode(filePath, keyPath, seedPath, mode, arg, verbose)
+			executemode(arg)
 
 		case "--external-key", "--external-seed", "-ek", "-es":
 			*validCommandFound = true
@@ -134,24 +140,27 @@ func processCommands(argsList utils.List, filePath, keyPath, seedPath string, va
 	}
 }
 
-func executeMode(filePath, keyPath, seedPath string, mode string, command string, verbose *bool) {
+func executemode(command string) {
 	var encrypt bool = false
-	bKey, bSeed := stream.GetFile(keyPath), stream.GetFile(seedPath)
 
-	if command == "-e" || command == "--encrypt"  {
+	state.ByteKEY = stream.GetFile(state.KEYPATH)
+	state.ByteSEED = stream.GetFile(state.SEEDPATH)
+
+	if command == "-e" || command == "--encrypt" {
 		encrypt = true
 	}
-	if filePath == "" {
+
+	if state.FILEPATH == "" {
 		log.Fatalln("No file path provided")
 		help.PrintHelp()
 		os.Exit(1)
 	}
 
 	switch {
-	case mode == "ecb" || mode == "cbc" || mode == "cfb" || mode == "ofb":
-		modes.PerformMode(mode, filePath, bKey, bSeed, encrypt, key, verbose)
+	case state.CYPHERMODE == "ecb" || state.CYPHERMODE == "cbc" || state.CYPHERMODE == "cfb" || state.CYPHERMODE == "ofb":
+		modes.PerformMode(encrypt)
 	default:
-		log.Fatalln("Invalid mode")
+		log.Fatalln("Invalid state.CYPHERMODE")
 		help.PrintHelp()
 		os.Exit(1)
 	}

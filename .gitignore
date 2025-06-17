@@ -2,4 +2,5 @@
 *.seed
 testfile.*
 testing/
+build/
 lea

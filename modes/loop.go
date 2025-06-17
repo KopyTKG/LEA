@@ -7,35 +7,31 @@ import (
 	"io"
 	"lea/fingerprint"
 	"lea/schedule"
+	"lea/state"
+	"lea/stream"
 	"lea/terminal"
 	"log"
 	"os"
+	"runtime"
 	"strings"
+	"sync"
 	"time"
-
-	ui "github.com/gizak/termui/v3"
 )
 
-const chunkSize = 4
+func PerformMode(encrypt bool) {
+	kChunks := fingerprint.LoadSource(state.ByteKEY)
+	sChunks := fingerprint.LoadSource(state.ByteSEED)
+	key := fingerprint.SelectPrint(kChunks, state.KEYLENGTH)
+	seed := fingerprint.SelectPrint(sChunks, state.KEYLENGTH)
+	rk := schedule.KeySchedule(state.KEYLENGTH, key, seed)
 
-func PerformMode(mode, filePath string, bKey, bSeed []byte, encrypt bool, keySize int, verbose *bool) {
-	kChunks := fingerprint.LoadSource(bKey)
-	sChunks := fingerprint.LoadSource(bSeed)
-	key := fingerprint.SelectPrint(kChunks, keySize)
-	seed := fingerprint.SelectPrint(sChunks, keySize)
-	rk := schedule.KeySchedule(keySize, key, seed)
-	tmpFilePath := filePath + ".tmp"
-
-	file, err := os.Open(filePath)
-	if err != nil {
-		log.Fatalf("Error opening file: %v", err)
+	if encrypt {
+		state.Mode = "Encryption"
 	}
-	defer file.Close()
 
-	var prev [4]uint32
 	var IV [4]uint32
 
-	if mode != "ecb" {
+	if state.CYPHERMODE != "ecb" {
 		cli := bufio.NewReader(os.Stdin)
 		fmt.Print("Please provide an IV: ")
 		input, _ := cli.ReadString('\n')
@@ -43,46 +39,96 @@ func PerformMode(mode, filePath string, bKey, bSeed []byte, encrypt bool, keySiz
 
 		IV = fingerprint.Fingerprint128(fingerprint.LoadSource([]byte(input)))
 	}
-	r := terminal.Rendering{}
-	f := terminal.Fileln{}
-	if *verbose {
-		if err := ui.Init(); err != nil {
-			log.Fatalf("failed to initialize termui: %v", err)
+
+	var files []string
+	var tmpFiles []string
+
+	UI := terminal.Rendering{}
+	UI.Files = make([]*terminal.Fileln, 0)
+
+	if state.RECURSION {
+		content, err := stream.RecursionLS(state.FILEPATH)
+		if err != nil {
+			panic(err)
 		}
 
-		defer ui.Close()
-
-		fs, _ := file.Stat()
-		size := int(fs.Size())
-		w, _ := ui.TerminalDimensions()
-		bar := terminal.BarSetup((w - 5) / 2)
-		f = terminal.Fileln{
-			FP:    filePath,
-			Done:  0,
-			Total: size,
-			Bar:   bar,
+		for _, file := range content {
+			files = append(files, file)
+			tmpFiles = append(tmpFiles, file+".tmp")
 		}
-		r = terminal.Rendering{File: &f}
+	} else {
+		files = append(files, state.FILEPATH)
+		tmpFiles = append(tmpFiles, state.FILEPATH+".tmp")
+	}
+
+	if state.VERBOSE {
 
 	}
-	prev = IV
-	readAndProcessFileInChunks(mode, tmpFilePath, rk, file, &prev, encrypt, keySize, &f, &r, verbose)
 
-	cleanup(tmpFilePath, filePath)
+	maxWorkers := runtime.NumCPU()
+
+	semaphore := make(chan struct{}, maxWorkers)
+
+	UI.Total = len(files)
+
+	var wg sync.WaitGroup
+
+	wg.Add(len(files))
+
+	for i := 0; i < len(files); i++ {
+		t := IV
+		go worker(i, &wg, semaphore, tmpFiles[i], files[i], encrypt, rk, &t, &UI)
+	}
+
+	if state.VERBOSE {
+		go func() {
+			for {
+				UI.Run()
+				time.Sleep(200 * time.Millisecond)
+			}
+		}()
+	}
+
+	wg.Wait()
+
 }
 
-func readAndProcessFileInChunks(mode string, tmpFilePath string, rk []uint32, file *os.File, prev *[4]uint32, encrypt bool, keySize int, f *terminal.Fileln, r *terminal.Rendering, verbose *bool) {
+func worker(id int, wg *sync.WaitGroup, semaphore chan struct{}, tmp, path string, enc bool, rk []uint32, IV *[4]uint32, UI *terminal.Rendering) {
+	defer wg.Done()
+
+	// Acquire semaphore slot immediately to respect concurrency limit
+	semaphore <- struct{}{}
+	defer func() { <-semaphore }()
+
+	file, err := os.Open(path)
+	if err != nil {
+		return
+	}
+	defer file.Close()
+
+	fs, _ := file.Stat()
+
+	f := terminal.Fileln{Filename: path, Total: int(fs.Size()), Current: 0, Done: false}
+
+	(*UI).AddFile(&f)
+	f.Bar = terminal.BarSetup(50)
+	readAndProcessFileInChunks(state.CYPHERMODE, tmp, rk, file, IV, enc, state.KEYLENGTH, &f)
+	cleanup(tmp, path)
+
+	f.Done = true
+	UI.Done += 1
+}
+
+func readAndProcessFileInChunks(mode string, tmpFilePath string, rk []uint32, file *os.File, prev *[4]uint32, encrypt bool, keySize int, f *terminal.Fileln) {
 	reader := bufio.NewReader(file)
 	var chunks []uint32
-	buf := make([]byte, chunkSize)
+	buf := make([]byte, state.CHUNKSIZE)
 	count := 0
-	lastRenderTime := time.Now()
-	renderInterval := 500 * time.Millisecond // Set the interval for UI updates
 	for {
 		n, err := io.ReadFull(reader, buf)
 		if err == io.EOF || err == io.ErrUnexpectedEOF {
 			if n > 0 {
-				var paddedBuf [chunkSize]byte
+				var paddedBuf [state.CHUNKSIZE]byte
 				copy(paddedBuf[:], buf[:n])
 				chunks = append(chunks, binary.LittleEndian.Uint32(paddedBuf[:]))
 			}
@@ -99,14 +145,12 @@ func readAndProcessFileInChunks(mode string, tmpFilePath string, rk []uint32, fi
 			performAction(mode, tmpFilePath, rk, [4]uint32(chunks), prev, encrypt, keySize)
 			chunks = []uint32{}
 			count += 16
-			if *verbose {
-				f.Update(count)
+
+			if state.VERBOSE {
+				(*f).Update(count)
 			}
 		}
-		if time.Since(lastRenderTime) > renderInterval && *verbose {
-			r.Run()
-			lastRenderTime = time.Now()
-		}
+
 	}
 
 	for len(chunks)%4 != 0 {

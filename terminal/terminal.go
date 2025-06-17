@@ -1,35 +1,50 @@
 package terminal
 
 import (
+	"fmt"
 	"lea/help"
-	"strconv"
+	"lea/state"
+	"os"
+	"runtime"
+	"strings"
+	"sync"
 
-	ui "github.com/gizak/termui/v3"
-	"github.com/gizak/termui/v3/widgets"
+	"golang.org/x/term"
 )
 
 type Fileln struct {
-	FP    string
-	Done  int
-	Total int
-	Bar   []rune
+	Filename string // Filepath
+	Current  int    // Done size
+	Total    int    // Total size
+	Done     bool
+	Bar      []rune // Bar elements to render
 }
 
 func (f *Fileln) Update(newVal int) {
-	f.Done = newVal
+	f.Current = newVal
 	per := (100 * newVal) / f.Total
 	blocks := ((len(f.Bar) - 2) * per) / 100
-
-	for i := int(1); i < blocks; i++ {
+	for i := 1; i < blocks; i++ {
 		f.Bar[i] = '#'
 	}
 }
 
 type Rendering struct {
-	File *Fileln
+	Files []*Fileln
+	Total int
+	Done  int
+	Mutex sync.Mutex // For safe concurrent access to Files
+}
+
+func (r *Rendering) AddFile(file *Fileln) {
+	r.Mutex.Lock()
+	defer r.Mutex.Unlock()
+	(*r).Files = append((*r).Files, file)
 }
 
 func (r *Rendering) Run() {
+	ui := "\033[H\033[2J"
+
 	logo := []string{
 		" ___           _______       ________     ",
 		"|\\  \\         |\\  ___ \\     |\\   __  \\    ",
@@ -39,67 +54,59 @@ func (r *Rendering) Run() {
 		"   \\ \\_______\\   \\ \\_______\\   \\ \\__\\ \\__\\",
 		"    \\|_______|    \\|_______|    \\|__|\\|__|",
 		"                                          ",
-		"by @KopyTKG " + help.VERSION,
 	}
-	g := ui.NewGrid()
-	termWidth, termHeight := ui.TerminalDimensions()
-	g.SetRect(0, termHeight/4-1, termWidth-1, (termHeight/4)*3-1)
-	g.Border = true
 
-	g1 := ui.NewGrid()
-	g1.SetRect(0, 0, termWidth-1, termHeight/4)
-	g1.Border = true
-	logoText := widgets.NewParagraph()
-
-	logoText.Text = ""
 	for _, line := range logo {
-		logoText.Text += line + "\n"
+		ui += line + "\n"
 	}
-	logoText.Border = false
 
-	fp := widgets.NewParagraph()
-	fp.Text = r.File.FP
-	fp.SetRect(0, 0, (termWidth-1)/4, 1)
-	fp.Border = false
+	width := 80
+	if w, _, err := term.GetSize(int(os.Stdout.Fd())); err == nil {
+		width = w
+	}
 
-	bar := widgets.NewParagraph()
-	bar.Text = string(r.File.Bar)
-	bar.SetRect(0, 0, (termWidth-1)/2, 1)
-	bar.Border = false
+	ui += fmt.Sprintf("by @KopyTKG %20s \n\n", help.VERSION)
 
-	per := widgets.NewParagraph()
-	percentage := (100 * r.File.Done) / r.File.Total
-	per.Text = (strconv.Itoa(percentage) + "%")
-	per.SetRect(0, 0, (termWidth-1)/4, 1)
-	per.Border = false
+	ui += fmt.Sprintf("\033[1m%s\033[0m | \033[1m%s\033[0m | KEY \033[1m%d\033[0m \n\n", state.Mode, strings.ToUpper(state.CYPHERMODE), state.KEYLENGTH)
 
-	g1.Set(
-		ui.NewRow(1.0, ui.NewCol(1.0, logoText)),
-	)
+	ui += fmt.Sprintf("%-10s%2d/%-4d] \n\n", "Status  [", r.Done, r.Total)
 
-	row := ui.NewRow(1.0,
-		ui.NewCol(0.25, fp),
-		ui.NewCol(0.5, bar),
-		ui.NewCol(0.25, per),
-	)
+	splice := len(r.Files) - (runtime.NumCPU() * 2)
 
-	g.Set(row)
-	ui.Render(g1, g)
-}
+	if splice < 0 {
+		splice = 0
+	}
 
-func push(arr *[]rune, item rune) {
-	*arr = append(*arr, item)
+	for _, f := range r.Files {
+		if f.Done {
+			continue
+		}
+
+		bar := ""
+		for _, c := range f.Bar {
+			bar += string(c)
+		}
+
+		padding := width - len(bar) - len(f.Filename)
+		if padding < 0 {
+			padding = 0
+		}
+
+		line := fmt.Sprintf("%s%*s%s\n", f.Filename, padding, "", bar)
+
+		ui += line
+	}
+
+	fmt.Println(ui)
 }
 
 func BarSetup(w int) []rune {
-	progress := []rune("")
-	push(&progress, '[')
-	for i := 1; i < w; i++ {
-		push(&progress, ' ')
+	progress := make([]rune, 0, w+2)
+	progress = append(progress, '[')
+	for i := 0; i < w; i++ {
+		progress = append(progress, ' ')
 	}
-
-	push(&progress, ']')
-	push(&progress, ' ')
-
+	progress = append(progress, ']')
+	progress = append(progress, ' ')
 	return progress
 }
