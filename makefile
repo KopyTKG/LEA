@@ -1,12 +1,16 @@
 #Make file used for compilation and installation of LEA
 
-install:
-	go get -u
-	go build
-	sudo cp lea /usr/bin
+.PHONY: all x86_64 arm64 clean
 
-build:
-	go get -u
-	go build
+all: x86_64 arm64
 
-.PHONY: install build
+x86_64:
+	GOOS=linux GOARCH=amd64 go build -o build/lea.x64 main.go
+	sha512sum build/lea.x64 >> build/lea.x64.sha512
+
+arm64:
+	GOOS=linux GOARCH=arm64 go build -o build/lea.arm64 main.go
+	sha512sum build/lea.arm64 >> build/lea.arm64.sha512
+
+clean:
+	rm -f build/lea.x64 build/lea.arm64 build/lea.x64.sha512 build/lea.arm64.sha512
