@@ -5,6 +5,7 @@
 ![GitHub License](https://img.shields.io/github/v/release/KopyTKG/LEA?include_prereleases&sort=date&label=Dev) 
 
 
+
 ## Overview 
 
 **LEA** (Light Encryption Algorithm) is a command-line tool written in Go for simple file encryption and decryption on Linux. This project was developed as a university assignment for the KI-ZKR course, focusing on implementing the LEA block cipher and providing a practical CLI for file operations.
@@ -50,6 +51,8 @@ lea --help
 ```
 
 ### Command-Line Options
+
+<h3> Linux </h3>
 
 ```bash
 Usage: lea [file] [options]
