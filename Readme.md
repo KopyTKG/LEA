@@ -112,4 +112,4 @@ lea folder -e --ek key.file --es seed.file -r -v
 
 ## License
 
-This project is licensed under the Creative Commons 1.0 License. See [LICENSE](LICENSE.md) for details.
+This project is licensed under the Creative Commons Zero v1.0 Universal License. See [LICENSE](LICENSE.md) for details.
