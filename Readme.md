@@ -1,9 +1,6 @@
 # Light Encryption Algorithm (LEA)
 
 ![GitHub License](https://img.shields.io/github/license/kopytkg/LEA)
-![GitHub License](https://img.shields.io/github/v/release/KopyTKG/LEA?label=Live) 
-![GitHub License](https://img.shields.io/github/v/release/KopyTKG/LEA?include_prereleases&sort=date&label=Dev) 
-
 
 
 ## Overview 
