@@ -23,3 +23,4 @@ var VERBOSE bool = false
 
 var ByteKEY []byte
 var ByteSEED []byte
+var Mode string = "Decryption"

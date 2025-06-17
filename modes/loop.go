@@ -9,14 +9,25 @@ import (
 	"lea/schedule"
 	"lea/state"
 	"lea/stream"
+	"lea/terminal"
 	"log"
 	"os"
 	"runtime"
 	"strings"
 	"sync"
+	"time"
 )
 
 func PerformMode(encrypt bool) {
+	kChunks := fingerprint.LoadSource(state.ByteKEY)
+	sChunks := fingerprint.LoadSource(state.ByteSEED)
+	key := fingerprint.SelectPrint(kChunks, state.KEYLENGTH)
+	seed := fingerprint.SelectPrint(sChunks, state.KEYLENGTH)
+	rk := schedule.KeySchedule(state.KEYLENGTH, key, seed)
+
+	if encrypt {
+		state.Mode = "Encryption"
+	}
 
 	var IV [4]uint32
 
@@ -31,6 +42,10 @@ func PerformMode(encrypt bool) {
 
 	var files []string
 	var tmpFiles []string
+
+	UI := terminal.Rendering{}
+	UI.Files = make([]*terminal.Fileln, 0)
+
 	if state.RECURSION {
 		content, err := stream.RecursionLS(state.FILEPATH)
 		if err != nil {
@@ -50,54 +65,61 @@ func PerformMode(encrypt bool) {
 
 	}
 
-	fmt.Println(files)
-
 	maxWorkers := runtime.NumCPU()
 
 	semaphore := make(chan struct{}, maxWorkers)
+
+	UI.Total = len(files)
 
 	var wg sync.WaitGroup
 
 	wg.Add(len(files))
 
 	for i := 0; i < len(files); i++ {
-		fmt.Println(i)
 		t := IV
-		go worker(&wg, semaphore, tmpFiles[i], files[i], encrypt, &t)
+		go worker(i, &wg, semaphore, tmpFiles[i], files[i], encrypt, rk, &t, &UI)
 	}
+
+	if state.VERBOSE {
+		go func() {
+			for {
+				UI.Run()
+				time.Sleep(200 * time.Millisecond)
+			}
+		}()
+	}
+
+	wg.Wait()
 
 }
 
-func worker(wg *sync.WaitGroup, semaphore chan struct{}, tmp, path string, enc bool, IV *[4]uint32) {
-
-	fmt.Println("Worker on file " + path)
+func worker(id int, wg *sync.WaitGroup, semaphore chan struct{}, tmp, path string, enc bool, rk []uint32, IV *[4]uint32, UI *terminal.Rendering) {
 	defer wg.Done()
+
+	// Acquire semaphore slot immediately to respect concurrency limit
+	semaphore <- struct{}{}
+	defer func() { <-semaphore }()
 
 	file, err := os.Open(path)
 	if err != nil {
-		fmt.Println("Skipping " + path)
 		return
 	}
 	defer file.Close()
 
-	kChunks := fingerprint.LoadSource(state.ByteKEY)
-	sChunks := fingerprint.LoadSource(state.ByteSEED)
-	key := fingerprint.SelectPrint(kChunks, state.KEYLENGTH)
-	seed := fingerprint.SelectPrint(sChunks, state.KEYLENGTH)
-	rk := schedule.KeySchedule(state.KEYLENGTH, key, seed)
+	fs, _ := file.Stat()
 
-	semaphore <- struct{}{}
+	f := terminal.Fileln{Filename: path, Total: int(fs.Size()), Current: 0, Done: false}
 
-	defer func() { <-semaphore }()
-
-	fmt.Println(path)
-	readAndProcessFileInChunks(state.CYPHERMODE, tmp, rk, file, IV, enc, state.KEYLENGTH)
-
+	(*UI).AddFile(&f)
+	f.Bar = terminal.BarSetup(50)
+	readAndProcessFileInChunks(state.CYPHERMODE, tmp, rk, file, IV, enc, state.KEYLENGTH, &f)
 	cleanup(tmp, path)
 
+	f.Done = true
+	UI.Done += 1
 }
 
-func readAndProcessFileInChunks(mode string, tmpFilePath string, rk []uint32, file *os.File, prev *[4]uint32, encrypt bool, keySize int) {
+func readAndProcessFileInChunks(mode string, tmpFilePath string, rk []uint32, file *os.File, prev *[4]uint32, encrypt bool, keySize int, f *terminal.Fileln) {
 	reader := bufio.NewReader(file)
 	var chunks []uint32
 	buf := make([]byte, state.CHUNKSIZE)
@@ -124,6 +146,9 @@ func readAndProcessFileInChunks(mode string, tmpFilePath string, rk []uint32, fi
 			chunks = []uint32{}
 			count += 16
 
+			if state.VERBOSE {
+				(*f).Update(count)
+			}
 		}
 
 	}

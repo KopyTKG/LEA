@@ -12,6 +12,7 @@ func PrintHelp() {
     -h, --help                  	Display this help message
     --version               		Display the version of lea
     -v, --verbose			Display progress screen
+    -r, --recursion			Use recursion for folder encryption
 
   * marks required switch
 
