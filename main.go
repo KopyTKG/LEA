@@ -56,6 +56,21 @@ func handleArgs(args []string) {
 func processArguments(args []string, argsList *utils.List) {
 	prev := ""
 	state.FILEPATH = args[0]
+
+	if len(args) == 1 {
+
+		if state.FILEPATH == "-h" || state.FILEPATH == "--help" {
+			help.PrintHelp()
+			os.Exit(1)
+		}
+
+		if state.FILEPATH == "--version" {
+			help.Version()
+			os.Exit(1)
+		}
+
+	}
+
 	for _, arg := range args[1:] {
 		switch {
 		// encrypt command must be last
@@ -73,14 +88,6 @@ func processArguments(args []string, argsList *utils.List) {
 		case prev == "-es" || prev == "--external-seed":
 			prev = ""
 			state.SEEDPATH = arg
-
-		// console output for version and help
-		case arg == "-h" || arg == "--help":
-			help.PrintHelp()
-			os.Exit(1)
-		case arg == "--version":
-			help.Version()
-			os.Exit(1)
 
 		case arg == "-r" || arg == "--recursion":
 			state.RECURSION = true
