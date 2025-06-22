@@ -2,12 +2,19 @@ package fingerprint
 
 import (
 	"encoding/binary"
-	"golang.org/x/crypto/sha3"
 	"lea/types"
+
+	"golang.org/x/crypto/sha3"
 )
 
-var UPPERMASK uint64 = 0xFFFFFFFF00000000
-var LOWERMASK uint64 = 0xFFFFFFFF
+const (
+	// Masks
+	UPPERMASK uint64 = 0xFFFFFFFF00000000
+	LOWERMASK uint64 = 0x00000000FFFFFFFF
+
+	// Chunk size constant
+	CHUNKS int = 8
+)
 
 func LoadSource(data []byte) types.SourceKey {
 	hasher := sha3.New512()
@@ -20,15 +27,15 @@ func LoadSource(data []byte) types.SourceKey {
 	sum := hasher.Sum(nil)
 
 	var hashArray types.SourceKey
-	for i := 0; i < 8; i++ {
-		hashArray[i] = binary.BigEndian.Uint64(sum[i*8 : (i+1)*8])
+	for i := range CHUNKS {
+		hashArray[i] = binary.BigEndian.Uint64(sum[i*CHUNKS : (i+1)*CHUNKS])
 	}
 	return hashArray
 }
 
 func SelectPrint(source types.SourceKey, size int) []uint32 {
- switch size {
- 	case 128:
+	switch size {
+	case 128:
 		k := Fingerprint128(source)
 		return k[:]
 	case 192:
@@ -40,7 +47,7 @@ func SelectPrint(source types.SourceKey, size int) []uint32 {
 
 	default:
 		return []uint32{}
- }
+	}
 }
 
 func Fingerprint128(source types.SourceKey) types.Key128 {

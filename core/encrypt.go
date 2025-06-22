@@ -2,25 +2,25 @@ package core
 
 import (
 	"lea/bitops"
+	"lea/schedule"
 	"lea/types"
 )
 
 func SelectEncrypt(block [4]uint32, rk []uint32, size int) []uint32 {
 	switch size {
-		case 128:
-			b := Encrypt128(block, types.Rk128(rk))
-			return b[:]
-		case 192:
-			b := Encrypt192(block, types.Rk192(rk))
-			return b[:]
-		case 256:
-			b := Encrypt256(block, types.Rk256(rk))
-			return b[:]
-		default:
-			return []uint32{}
+	case 128:
+		b := Encrypt128(block, types.Rk128(rk))
+		return b[:]
+	case 192:
+		b := Encrypt192(block, types.Rk192(rk))
+		return b[:]
+	case 256:
+		b := Encrypt256(block, types.Rk256(rk))
+		return b[:]
+	default:
+		return []uint32{}
 	}
 }
-
 
 func encRound(block *[4]uint32, rk []uint32, i int) {
 	rkI := 6 * i
@@ -34,14 +34,14 @@ func encRound(block *[4]uint32, rk []uint32, i int) {
 }
 
 func Encrypt128(block [4]uint32, rk types.Rk128) [4]uint32 {
-	for i := 0; i < 24; i++ {
+	for i := range schedule.ROUNDS128 {
 		encRound(&block, rk[:], i)
 	}
 	return block
 }
 
 func Encrypt192(block [4]uint32, rk types.Rk192) [4]uint32 {
-	for i := 0; i < 28; i++ {
+	for i := range schedule.ROUNDS192 {
 		encRound(&block, rk[:], i)
 	}
 
@@ -49,7 +49,7 @@ func Encrypt192(block [4]uint32, rk types.Rk192) [4]uint32 {
 }
 
 func Encrypt256(block [4]uint32, rk types.Rk256) [4]uint32 {
-	for i := 0; i < 32; i++ {
+	for i := range schedule.ROUNDS256 {
 		encRound(&block, rk[:], i)
 	}
 

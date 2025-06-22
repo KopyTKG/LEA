@@ -7,22 +7,35 @@ import (
 	"lea/state"
 	"lea/stream"
 	"lea/utils"
-	"log"
 	"os"
+	"time"
+
+	"github.com/kopytkg/golog"
 )
 
 func main() {
+	/* Initialize Golog */
+
+	timestamp := time.Now().Unix()
+
+	file := fmt.Sprintf("lea-%d.log", timestamp)
+
+	err := golog.EnableLogFile(file)
+	if err != nil {
+		panic(err)
+	}
+
+	golog.LOGLEVEL = golog.INFO
+	golog.CLILOG = golog.ENABLED
+
+	/* --------------- */
+
 	args := os.Args[1:]
 	if len(args) < 1 {
 		help.PrintHelp()
 		return
 	}
 
-	handleArgs(args)
-}
-
-/* Main handeling loop for arguments */
-func handleArgs(args []string) {
 	// preset file paths
 	argsList := utils.List{}
 
@@ -41,14 +54,14 @@ func handleArgs(args []string) {
 			sw = "-es"
 		}
 
-		log.Fatalf("Missing required switch (%s) run \"lea -h\"", sw)
+		golog.Errorf("Missing required switch (%s) run \"lea -h\"", sw)
 	}
 
 	validCommandFound, encrypted := false, false
 	processCommands(argsList, &validCommandFound, &encrypted)
 
 	if !validCommandFound {
-		fmt.Println("Invalid command or file path")
+		golog.Error("Invalid command or file path")
 		help.PrintHelp()
 	}
 }
@@ -114,7 +127,7 @@ func processArguments(args []string, argsList *utils.List) {
 			state.KEYLENGTH = 256
 
 		default:
-			log.Fatalf("Unknowed switch found (%s) run \"lea -h\"", arg)
+			golog.Errorf("Unknowed switch found (%s) run \"lea -h\"", arg)
 			os.Exit(1)
 		}
 	}
@@ -130,7 +143,7 @@ func processCommands(argsList utils.List, validCommandFound, encrypted *bool) {
 		}
 
 		if !b {
-			log.Fatalf("Path (%s) must be folder for recursion operation\n", state.FILEPATH)
+			golog.Errorf("Path (%s) must be folder for recursion operation\n", state.FILEPATH)
 		}
 	}
 
@@ -150,24 +163,32 @@ func processCommands(argsList utils.List, validCommandFound, encrypted *bool) {
 func executemode(command string) {
 	var encrypt bool = false
 
-	state.ByteKEY = stream.GetFile(state.KEYPATH)
-	state.ByteSEED = stream.GetFile(state.SEEDPATH)
+	byteKEY, err := stream.GetFile(state.KEYPATH)
+	if err != nil {
+		golog.Error(err)
+	}
+	state.ByteKEY = byteKEY
+
+	byteSEED, err := stream.GetFile(state.SEEDPATH)
+	if err != nil {
+		golog.Error(err)
+	}
+	state.ByteSEED = byteSEED
 
 	if command == "-e" || command == "--encrypt" {
 		encrypt = true
 	}
 
 	if state.FILEPATH == "" {
-		log.Fatalln("No file path provided")
+		golog.Error("No file path provided")
 		help.PrintHelp()
 		os.Exit(1)
 	}
 
-	switch {
-	case state.CYPHERMODE == "ecb" || state.CYPHERMODE == "cbc" || state.CYPHERMODE == "cfb" || state.CYPHERMODE == "ofb":
+	if state.CYPHERMODE == "ecb" || state.CYPHERMODE == "cbc" || state.CYPHERMODE == "cfb" || state.CYPHERMODE == "ofb" {
 		modes.PerformMode(encrypt)
-	default:
-		log.Fatalln("Invalid state.CYPHERMODE")
+	} else {
+		golog.Error("Invalid state.CYPHERMODE")
 		help.PrintHelp()
 		os.Exit(1)
 	}

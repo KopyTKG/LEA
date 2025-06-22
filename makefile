@@ -4,6 +4,7 @@
 
 all: x86_64 arm64
 
+
 x86_64:
 	GOOS=linux GOARCH=amd64 go build -o build/lea.x64 main.go
 	sha512sum build/lea.x64 >> build/lea.x64.sha512

@@ -5,7 +5,6 @@ import (
 	"lea/help"
 	"lea/state"
 	"os"
-	"runtime"
 	"strings"
 	"sync"
 
@@ -71,12 +70,6 @@ func (r *Rendering) Run() {
 
 	ui += fmt.Sprintf("%-10s%2d/%-4d] \n\n", "Status  [", r.Done, r.Total)
 
-	splice := len(r.Files) - (runtime.NumCPU() * 2)
-
-	if splice < 0 {
-		splice = 0
-	}
-
 	for _, f := range r.Files {
 		if f.Done {
 			continue
@@ -87,10 +80,7 @@ func (r *Rendering) Run() {
 			bar += string(c)
 		}
 
-		padding := width - len(bar) - len(f.Filename)
-		if padding < 0 {
-			padding = 0
-		}
+		padding := max(width-len(bar)-len(f.Filename), 0)
 
 		line := fmt.Sprintf("%s%*s%s\n", f.Filename, padding, "", bar)
 

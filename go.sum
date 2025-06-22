@@ -1,5 +1,9 @@
 github.com/gizak/termui/v3 v3.1.0 h1:ZZmVDgwHl7gR7elfKf1xc4IudXZ5qqfDh4wExk4Iajc=
 github.com/gizak/termui/v3 v3.1.0/go.mod h1:bXQEBkJpzxUAKf0+xq9MSWAvWZlE7c+aidmyFlkYTrY=
+github.com/kopytkg/golog v0.1.0 h1:7v0hf4lPGOrSTrmheDV2LJGM9qPYyBIjCuVBYrp91Ds=
+github.com/kopytkg/golog v0.1.0/go.mod h1:C3p8HkX/X8QxKwRux7em5kMfLTVk5GR9FJORfpF+I/0=
+github.com/kopytkg/golog v0.2.0 h1:Lssq2PJdH1zjketvod1J5Jizm7p62huyWR0zsVyeSIo=
+github.com/kopytkg/golog v0.2.0/go.mod h1:C3p8HkX/X8QxKwRux7em5kMfLTVk5GR9FJORfpF+I/0=
 github.com/mattn/go-runewidth v0.0.2 h1:UnlwIPBGaTZfPQ6T1IGzPI0EkYAQmT9fAEJ/poFC63o=
 github.com/mattn/go-runewidth v0.0.2/go.mod h1:LwmH8dsx7+W8Uxz3IHJYH5QSwggIsqBzpuz5H//U1FU=
 github.com/mattn/go-runewidth v0.0.9/go.mod h1:H031xJmbD/WCDINGzjvQ9THkh0rPKHF+m2gUSrubnMI=

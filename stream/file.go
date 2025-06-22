@@ -2,16 +2,14 @@ package stream
 
 import (
 	"bufio"
+	"fmt"
 	"io"
-	"log"
 	"os"
 )
 
-func GetFile(path string) []byte {
+func GetFile(path string) ([]byte, error) {
 	if _, err := os.Stat(path); os.IsNotExist(err) {
-		log.Fatalf("File (%v) could not be accessed\n\n", path)
-		os.Exit(1)
-		return []byte{}
+		return []byte{}, fmt.Errorf("File (%v) could not be accessed", path)
 	} else {
 		file, err := os.Open(path)
 		if err != nil {
@@ -30,7 +28,7 @@ func GetFile(path string) []byte {
 			}
 			chunks = append(chunks, n)
 		}
-		return chunks
+		return chunks, nil
 	}
 }
 
@@ -38,7 +36,7 @@ func LSFolder(path string) ([]string, error) {
 	entries, err := os.ReadDir(path)
 
 	if err != nil {
-		return []string{}, err
+		return []string{}, fmt.Errorf("Folder (%v) could not be accessed: %w", path, err)
 	}
 
 	var paths []string
@@ -55,7 +53,7 @@ func IsFolder(path string) (bool, error) {
 	file, err := os.Open(path)
 
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("File (%v) could not be accessed: %w", path, err)
 	}
 
 	defer file.Close()
@@ -63,7 +61,7 @@ func IsFolder(path string) (bool, error) {
 	fileInfo, err := file.Stat()
 
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("Could not get file info for (%v): %w", path, err)
 	}
 
 	return fileInfo.IsDir(), nil
@@ -72,7 +70,7 @@ func IsFolder(path string) (bool, error) {
 func RecursionLS(path string) ([]string, error) {
 	c, err := LSFolder(path)
 	if err != nil {
-		return []string{}, err
+		return []string{}, fmt.Errorf("Could not list folder (%v): %w", path, err)
 	}
 	var files []string
 	for _, f := range c {

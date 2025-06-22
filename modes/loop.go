@@ -10,12 +10,13 @@ import (
 	"lea/state"
 	"lea/stream"
 	"lea/terminal"
-	"log"
 	"os"
 	"runtime"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/kopytkg/golog"
 )
 
 func PerformMode(encrypt bool) {
@@ -23,7 +24,12 @@ func PerformMode(encrypt bool) {
 	sChunks := fingerprint.LoadSource(state.ByteSEED)
 	key := fingerprint.SelectPrint(kChunks, state.KEYLENGTH)
 	seed := fingerprint.SelectPrint(sChunks, state.KEYLENGTH)
-	rk := schedule.KeySchedule(state.KEYLENGTH, key, seed)
+	rk, err := schedule.KeySchedule(state.KEYLENGTH, key, seed)
+
+	if err != nil {
+		golog.Errorf("Error in key schedule: %v", err)
+		os.Exit(1)
+	}
 
 	if encrypt {
 		state.Mode = "Encryption"
@@ -77,7 +83,7 @@ func PerformMode(encrypt bool) {
 
 	for i := 0; i < len(files); i++ {
 		t := IV
-		go worker(i, &wg, semaphore, tmpFiles[i], files[i], encrypt, rk, &t, &UI)
+		go worker(&wg, semaphore, tmpFiles[i], files[i], encrypt, rk, &t, &UI)
 	}
 
 	if state.VERBOSE {
@@ -93,7 +99,7 @@ func PerformMode(encrypt bool) {
 
 }
 
-func worker(id int, wg *sync.WaitGroup, semaphore chan struct{}, tmp, path string, enc bool, rk []uint32, IV *[4]uint32, UI *terminal.Rendering) {
+func worker(wg *sync.WaitGroup, semaphore chan struct{}, tmp, path string, enc bool, rk []uint32, IV *[4]uint32, UI *terminal.Rendering) {
 	defer wg.Done()
 
 	// Acquire semaphore slot immediately to respect concurrency limit
@@ -135,7 +141,8 @@ func readAndProcessFileInChunks(mode string, tmpFilePath string, rk []uint32, fi
 			break
 		}
 		if err != nil {
-			log.Fatalf("Error reading file: %v", err)
+			golog.Errorf("Error reading file: %v", err)
+			return
 		}
 
 		chunk := binary.LittleEndian.Uint32(buf)
@@ -163,17 +170,17 @@ func readAndProcessFileInChunks(mode string, tmpFilePath string, rk []uint32, fi
 
 func cleanup(tmp, filePath string) {
 	if err := os.Remove(filePath); err != nil {
-		log.Fatalf("Error removing original file: %v", err)
+		golog.Errorf("Error removing original file: %v", err)
 	}
 	if err := os.Rename(tmp, filePath); err != nil {
-		log.Fatalf("Error renaming temporary file: %v", err)
+		golog.Errorf("Error renaming temporary file: %v", err)
 	}
 }
 
 func performAction(mode, filePath string, rk []uint32, chunks [4]uint32, prev *[4]uint32, encrypt bool, keySize int) {
 	switch mode {
 	default:
-		log.Fatalln("No mode selected")
+		golog.Error("No mode selected")
 		os.Exit(1)
 
 	case "ecb":
