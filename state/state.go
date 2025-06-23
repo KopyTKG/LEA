@@ -1,16 +1,14 @@
 package state
 
+import "lea/key"
+
 const CHUNKSIZE = 4 // Bytes
 
 /*    FLAGS     */
 
 var CYPHERMODE string = "ecb"
-var KEYLENGTH int = 256
 
 var FILEPATH string = ""
-
-var KEYPATH string = ""
-var SEEDPATH string = ""
 
 var RECURSION bool = false
 var VERBOSE bool = false
@@ -21,6 +19,10 @@ var VERBOSE bool = false
 --------------
 */
 
-var ByteKEY []byte
-var ByteSEED []byte
+// Active key and seed
+var Key key.KeyMaterial
+
+// Wipe iterations
+var Iterations int
+
 var Mode string = "Decryption"

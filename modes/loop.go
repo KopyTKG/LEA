@@ -2,6 +2,8 @@ package modes
 
 import (
 	"bufio"
+	"bytes"
+	"crypto/rand"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -20,11 +22,7 @@ import (
 )
 
 func PerformMode(encrypt bool) {
-	kChunks := fingerprint.LoadSource(state.ByteKEY)
-	sChunks := fingerprint.LoadSource(state.ByteSEED)
-	key := fingerprint.SelectPrint(kChunks, state.KEYLENGTH)
-	seed := fingerprint.SelectPrint(sChunks, state.KEYLENGTH)
-	rk, err := schedule.KeySchedule(state.KEYLENGTH, key, seed)
+	rk, err := schedule.KeySchedule(int(state.Key.Metadata.KeyLength), state.Key.Key, state.Key.Seed)
 
 	if err != nil {
 		golog.Errorf("Error in key schedule: %v", err)
@@ -37,13 +35,13 @@ func PerformMode(encrypt bool) {
 
 	var IV [4]uint32
 
-	if state.CYPHERMODE != "ecb" {
+	if state.CYPHERMODE != "ecb" && state.CYPHERMODE != "ctr" {
 		cli := bufio.NewReader(os.Stdin)
 		fmt.Print("Please provide an IV: ")
 		input, _ := cli.ReadString('\n')
 		input = strings.TrimSpace(input)
 
-		IV = fingerprint.Fingerprint128(fingerprint.LoadSource([]byte(input)))
+		IV = [4]uint32(fingerprint.SelectPrint(fingerprint.LoadSource([]byte(input)), fingerprint.KEY128))
 	}
 
 	var files []string
@@ -118,7 +116,7 @@ func worker(wg *sync.WaitGroup, semaphore chan struct{}, tmp, path string, enc b
 
 	(*UI).AddFile(&f)
 	f.Bar = terminal.BarSetup(50)
-	readAndProcessFileInChunks(state.CYPHERMODE, tmp, rk, file, IV, enc, state.KEYLENGTH, &f)
+	readAndProcessFileInChunks(state.CYPHERMODE, tmp, rk, file, IV, enc, int(state.Key.Metadata.KeyLength), &f)
 	cleanup(tmp, path)
 
 	f.Done = true
@@ -130,6 +128,10 @@ func readAndProcessFileInChunks(mode string, tmpFilePath string, rk []uint32, fi
 	var chunks []uint32
 	buf := make([]byte, state.CHUNKSIZE)
 	count := 0
+
+	var counter [4]uint32
+	counter = [4]uint32{0, 0, 0, 0}
+
 	for {
 		n, err := io.ReadFull(reader, buf)
 		if err == io.EOF || err == io.ErrUnexpectedEOF {
@@ -149,13 +151,14 @@ func readAndProcessFileInChunks(mode string, tmpFilePath string, rk []uint32, fi
 		chunks = append(chunks, chunk)
 
 		if len(chunks) == 4 {
-			performAction(mode, tmpFilePath, rk, [4]uint32(chunks), prev, encrypt, keySize)
+			performAction(mode, tmpFilePath, rk, [4]uint32(chunks), prev, encrypt, keySize, &counter)
 			chunks = []uint32{}
 			count += 16
 
 			if state.VERBOSE {
 				(*f).Update(count)
 			}
+			incrementCounter(&counter)
 		}
 
 	}
@@ -164,12 +167,68 @@ func readAndProcessFileInChunks(mode string, tmpFilePath string, rk []uint32, fi
 		chunks = append(chunks, 0)
 	}
 	if len(chunks) > 0 {
-		performAction(mode, tmpFilePath, rk, [4]uint32(chunks), prev, encrypt, keySize)
+		performAction(mode, tmpFilePath, rk, [4]uint32(chunks), prev, encrypt, keySize, &counter)
 	}
 }
 
+func incrementCounter(counter *[4]uint32) {
+	// Start incrementing from the least significant word
+	for i := 3; i >= 0; i-- {
+		counter[i]++
+		if counter[i] != 0 {
+			// No overflow, done incrementing
+			break
+		}
+		// else continue to next more significant word (carry)
+	}
+}
+
+func makeRandomBuffer(size int64) ([]byte, error) {
+	buf := make([]byte, size)
+
+	if _, err := rand.Read(buf); err != nil {
+		return nil, err
+	}
+
+	return buf, nil
+}
+
+func secureWipe(path string, iterations int) error {
+	file, err := os.OpenFile(path, os.O_RDWR, 0)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	stat, _ := file.Stat()
+	size := stat.Size()
+
+	// Wipe patterns (DoD 5220.22-M compliant)
+	buf, err := makeRandomBuffer(size)
+	if err != nil {
+		golog.Error(err)
+		os.Exit(1)
+	}
+
+	patterns := [][]byte{
+		bytes.Repeat([]byte{0x00}, int(size)), // Zero pass
+		bytes.Repeat([]byte{0xFF}, int(size)), // One pass
+		buf,
+	}
+
+	for i := range iterations {
+		pattern := patterns[i%len(patterns)]
+		if _, err := file.WriteAt(pattern, 0); err != nil {
+			return err
+		}
+		file.Sync()
+	}
+	return os.Remove(path)
+}
+
 func cleanup(tmp, filePath string) {
-	if err := os.Remove(filePath); err != nil {
+
+	if err := secureWipe(filePath, state.Iterations); err != nil {
 		golog.Errorf("Error removing original file: %v", err)
 	}
 	if err := os.Rename(tmp, filePath); err != nil {
@@ -177,7 +236,7 @@ func cleanup(tmp, filePath string) {
 	}
 }
 
-func performAction(mode, filePath string, rk []uint32, chunks [4]uint32, prev *[4]uint32, encrypt bool, keySize int) {
+func performAction(mode, filePath string, rk []uint32, chunks [4]uint32, prev *[4]uint32, encrypt bool, keySize int, counter *[4]uint32) {
 	switch mode {
 	default:
 		golog.Error("No mode selected")
@@ -209,6 +268,13 @@ func performAction(mode, filePath string, rk []uint32, chunks [4]uint32, prev *[
 			encryptOFB(filePath, prev, rk, chunks, keySize)
 		} else {
 			decryptOFB(filePath, prev, rk, chunks, keySize)
+		}
+
+	case "ctr":
+		if encrypt {
+			encryptCTR(filePath, rk, chunks, keySize, counter)
+		} else {
+			decryptCTR(filePath, rk, chunks, keySize, counter)
 		}
 	}
 }

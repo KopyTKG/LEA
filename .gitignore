@@ -1,6 +1,21 @@
+# old files
 *.key
 *.seed
+
+# testing files
 testfile.*
 testing/
+
+# build artifacts
 build/
+*.x64
+*.arm64
 lea
+
+# generated filed
+*.gen128
+*.gen192
+*.gen256
+
+# Key files
+*.lea

@@ -3,37 +3,54 @@ package help
 import "fmt"
 
 func PrintHelp() {
-	helpText := `Usage: lea [file] ?[options]
+	helpText := `LEA Encryption Tool
+Usage: lea [file] ?[options]
 
-  * -e, --encrypt               	Encrypt the source file
-  * -d, --decrypt               	Decrypt the source file
-  * -ek, --external-key [file]   	Provide an external any key file. 
-  * -es, --external-seed [file] 	Provide an external any seed file. 
-    -h, --help                  	Display this help message
-    --version               		Display the version of lea
-    -v, --verbose			Display progress screen
-    -r, --recursion			Use recursion for folder encryption
+CORE OPERATIONS:
+  * -e, --encrypt                Encrypt target file/directory
+  * -d, --decrypt                Decrypt target file/directory
+    --key=[file]                 Use pre-generated key file (required)
+    lea keygen                   Generate new LEA keyfile
 
-  * marks required switch
+KEY MANAGEMENT:
+   Generated keys are saved as:
+   - key128.lea (128-bit)
+   - key192.lea (192-bit)
+   - key256.lea (256-bit, default)
 
-current version supports following modes:
-    --ecb                       	Electronic Codebook mode (default)
-    --cbc                       	Cipher Block Chaining mode
-    --cfb                       	Cipher Feedback mode
-    --ofb                       	Output Feedback mod
+   File Format:
+   -----BEGIN LEA KEY-----
+   Version: 1
+   Key: A1B2C3D4:E5F67890:...
+   Key Digest: sha256...
+   Seed: A1B2C3D4:E5F67890:...
+   Seed Digest: sha256...
+   -----END LEA KEY-----
 
-key length:
-    --128				Basic 128bit key and seed
-    --192				
-    --256				Recommended (default)
+ADVANCED:
+    --mode=[ecb|cbc|cfb|ofb|ctr]     Encryption mode (default: cbc)
+    -r, --recursive              Process directories recursively
+    -v, --verbose                Show detailed progress
+    --iter=N                     Overwrite N times (default: 3)
 
-If no options are provided, the file will be encrypted by default. 
-If nothing is provided at all lea will display help.
+DEBUG:
+    --version			 Show program version
 
-Any errors please report to: <https://github.com/kopytkg/lea/issues>
 
-usage
-$ lea [file] -ek [file] -es [file] -e/-d [optional mode] [optional lenght]
+Examples:
+  Encrypt:
+    $ lea file.txt -e --key=key256.lea
+
+  Decrypt with raw LEA-generated key:
+    $ lea file.txt -d --key=key.256.lea
+
+
+LEGAL DISCLAIMER:
+  This tool is for AUTHORIZED penetration testing only.
+  By using this software, you confirm you have permission
+  to test the target systems.
+
+Report issues to: <https://github.com/kopytkg/lea/issues>
 `
 	fmt.Print(helpText)
 }

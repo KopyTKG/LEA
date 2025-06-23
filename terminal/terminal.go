@@ -66,7 +66,7 @@ func (r *Rendering) Run() {
 
 	ui += fmt.Sprintf("by @KopyTKG %20s \n\n", help.VERSION)
 
-	ui += fmt.Sprintf("\033[1m%s\033[0m | \033[1m%s\033[0m | KEY \033[1m%d\033[0m \n\n", state.Mode, strings.ToUpper(state.CYPHERMODE), state.KEYLENGTH)
+	ui += fmt.Sprintf("\033[1m%s\033[0m | \033[1m%s\033[0m | KEY \033[1m%d\033[0m \n\n", state.Mode, strings.ToUpper(state.CYPHERMODE), state.Key.Metadata.KeyLength)
 
 	ui += fmt.Sprintf("%-10s%2d/%-4d] \n\n", "Status  [", r.Done, r.Total)
 

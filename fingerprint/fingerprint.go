@@ -14,6 +14,11 @@ const (
 
 	// Chunk size constant
 	CHUNKS int = 8
+
+	// Key sizes
+	KEY128 int = 128
+	KEY192 int = 192
+	KEY256 int = 256
 )
 
 func LoadSource(data []byte) types.SourceKey {
@@ -36,13 +41,13 @@ func LoadSource(data []byte) types.SourceKey {
 func SelectPrint(source types.SourceKey, size int) []uint32 {
 	switch size {
 	case 128:
-		k := Fingerprint128(source)
+		k := fingerprint128(source)
 		return k[:]
 	case 192:
-		k := Fingerprint192(source)
+		k := fingerprint192(source)
 		return k[:]
 	case 256:
-		k := Fingerprint256(source)
+		k := fingerprint256(source)
 		return k[:]
 
 	default:
@@ -50,7 +55,7 @@ func SelectPrint(source types.SourceKey, size int) []uint32 {
 	}
 }
 
-func Fingerprint128(source types.SourceKey) types.Key128 {
+func fingerprint128(source types.SourceKey) types.Key128 {
 	base := types.Key128{}
 
 	left := [2]uint64{source[0] ^ source[2], source[1] ^ source[3]}
@@ -66,7 +71,7 @@ func Fingerprint128(source types.SourceKey) types.Key128 {
 	return base
 }
 
-func Fingerprint192(source types.SourceKey) types.Key192 {
+func fingerprint192(source types.SourceKey) types.Key192 {
 	base := types.Key192{}
 
 	left := source[2] ^ source[4]
@@ -91,7 +96,7 @@ func Fingerprint192(source types.SourceKey) types.Key192 {
 	return base
 }
 
-func Fingerprint256(source types.SourceKey) types.Key256 {
+func fingerprint256(source types.SourceKey) types.Key256 {
 	base := types.Key256{}
 
 	left := [2]uint64{source[0] ^ source[2], source[1] ^ source[3]}

@@ -72,56 +72,56 @@ func WriteBinaryStream(filePath string, data [4]uint32) error {
 
 // PrepWriteBinaryStream prepends a slice of uint32 to a binary file
 func PrepWriteBinaryStream(filePath string, dec [4]uint32) error {
-    // Create a temporary file
-    tempFileName := filePath + ".tmp"
-    tempFile, err := os.Create(tempFileName)
-    if err != nil {
-        return fmt.Errorf("failed to create temporary file: %v", err)
-    }
-    defer tempFile.Close()
+	// Create a temporary file
+	tempFileName := filePath + ".tmp"
+	tempFile, err := os.Create(tempFileName)
+	if err != nil {
+		return fmt.Errorf("failed to create temporary file: %v", err)
+	}
+	defer tempFile.Close()
 
-    // Write the new data to the temporary file
-    data := make([]byte, 16)
-    for i, val := range dec {
-        binary.LittleEndian.PutUint32(data[i*4:(i+1)*4], val)
-    }
-    if _, err = tempFile.Write(data); err != nil {
-        return fmt.Errorf("failed to write data to temporary file: %v", err)
-    }
+	// Write the new data to the temporary file
+	data := make([]byte, 16)
+	for i, val := range dec {
+		binary.LittleEndian.PutUint32(data[i*4:(i+1)*4], val)
+	}
+	if _, err = tempFile.Write(data); err != nil {
+		return fmt.Errorf("failed to write data to temporary file: %v", err)
+	}
 
-    // Open the original file for reading
-    originalFile, err := os.OpenFile(filePath, os.O_RDONLY, 0)
-    if err != nil && !os.IsNotExist(err) {
-        return fmt.Errorf("failed to open original file: %v", err)
-    }
-    if originalFile != nil {
-        defer originalFile.Close()
+	// Open the original file for reading
+	originalFile, err := os.OpenFile(filePath, os.O_RDONLY, 0)
+	if err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("failed to open original file: %v", err)
+	}
+	if originalFile != nil {
+		defer originalFile.Close()
 
-        // Copy the original content to the temporary file using a larger buffer
-        buf := make([]byte, 1*1024*1024) // 1MB buffer
-        for {
-            n, err := originalFile.Read(buf)
-            if err != nil && err != io.EOF {
-                return fmt.Errorf("failed to read original file: %v", err)
-            }
-            if n == 0 {
-                break
-            }
-            if _, err = tempFile.Write(buf[:n]); err != nil {
-                return fmt.Errorf("failed to write original content to temporary file: %v", err)
-            }
-        }
-    }
+		// Copy the original content to the temporary file using a larger buffer
+		buf := make([]byte, 1*1024*1024) // 1MB buffer
+		for {
+			n, err := originalFile.Read(buf)
+			if err != nil && err != io.EOF {
+				return fmt.Errorf("failed to read original file: %v", err)
+			}
+			if n == 0 {
+				break
+			}
+			if _, err = tempFile.Write(buf[:n]); err != nil {
+				return fmt.Errorf("failed to write original content to temporary file: %v", err)
+			}
+		}
+	}
 
-    // Use fsync to ensure data is written to disk
-    if err = tempFile.Sync(); err != nil {
-        return fmt.Errorf("failed to sync temporary file: %v", err)
-    }
+	// Use fsync to ensure data is written to disk
+	if err = tempFile.Sync(); err != nil {
+		return fmt.Errorf("failed to sync temporary file: %v", err)
+	}
 
-    // Replace the original file with the temporary file
-    if err = os.Rename(tempFileName, filePath); err != nil {
-        return fmt.Errorf("failed to replace original file: %v", err)
-    }
+	// Replace the original file with the temporary file
+	if err = os.Rename(tempFileName, filePath); err != nil {
+		return fmt.Errorf("failed to replace original file: %v", err)
+	}
 
-    return nil
+	return nil
 }

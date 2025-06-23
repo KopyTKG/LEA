@@ -37,21 +37,21 @@ func KeySchedule(size int, key, seed []uint32) ([]uint32, error) {
 		s := Chunk128{}
 		copy(k[:CHUNK128], key)
 		copy(s[:CHUNK128], seed)
-		arr, err := Schedule128(k, s)
+		arr, err := schedule128(k, s)
 		return arr[:], err
 	case 192:
 		k := Chunk192{}
 		s := Chunk192{}
 		copy(k[:CHUNK192], key)
 		copy(s[:CHUNK192], seed)
-		arr, err := Schedule192(k, s)
+		arr, err := schedule192(k, s)
 		return arr[:], err
 	case 256:
 		k := Chunk256{}
 		s := Chunk256{}
 		copy(k[:CHUNK256], key)
 		copy(s[:CHUNK256], seed)
-		arr, err := Schedule256(k, s)
+		arr, err := schedule256(k, s)
 		return arr[:], err
 	default:
 		return []uint32{}, fmt.Errorf("invalid key size %d, must be 128, 192 or 256", size)
@@ -66,7 +66,7 @@ func checkLen(item []uint32, lenght int) (bool, error) {
 	return false, fmt.Errorf("key or seed length is not valid, expected %d, got %d", lenght, len(item))
 }
 
-func Schedule128(key, seed Chunk128) (*Rk128, error) {
+func schedule128(key, seed Chunk128) (*Rk128, error) {
 	// Lenght validation
 	_, err := checkLen(key[:], CHUNK128)
 	if err != nil {
@@ -108,7 +108,7 @@ func Schedule128(key, seed Chunk128) (*Rk128, error) {
 	return &rk, nil
 }
 
-func Schedule192(key, seed Chunk192) (*Rk192, error) {
+func schedule192(key, seed Chunk192) (*Rk192, error) {
 	// Lenght validation
 	_, err := checkLen(key[:], CHUNK192)
 	if err != nil {
@@ -148,7 +148,7 @@ func Schedule192(key, seed Chunk192) (*Rk192, error) {
 	return &rk, nil
 }
 
-func Schedule256(key, seed Chunk256) (*Rk256, error) {
+func schedule256(key, seed Chunk256) (*Rk256, error) {
 	// Lenght validation
 	_, err := checkLen(key[:], CHUNK256)
 	if err != nil {
