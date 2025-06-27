@@ -1,0 +1,27 @@
+name: "Task"
+description: "Track a small, actionable unit of work"
+title: "[Task] "
+labels: [task]
+assignees: []
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: "Task Description"
+      description: "Describe the specific task to be completed."
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: "Context"
+      description: "Link to the parent issue or provide any extra context."
+    validations:
+      required: false
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: "Acceptance Criteria"
+      description: "How will we know this task is complete?"
+    validations:
+      required: false
