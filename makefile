@@ -13,5 +13,9 @@ arm64:
 	GOOS=linux GOARCH=arm64 go build -o build/lea.arm64 main.go
 	sha512sum build/lea.arm64 >> build/lea.arm64.sha512
 
+win:
+	GOOS=windows GOARCH=amd64 go build -o build/lea.exe main.go
+	sha512sum build/lea.exe >> build/lea.exe.sha512
+
 clean:
-	rm -f build/lea.x64 build/lea.arm64 build/lea.x64.sha512 build/lea.arm64.sha512
+	rm -f build/lea.x64 build/lea.arm64 build/lea.x64.sha512 build/lea.arm64.sha512 build/lea.exe build/lea.exe.sha512

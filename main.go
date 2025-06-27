@@ -22,7 +22,9 @@ func main() {
 
 	timestamp := time.Now().Unix()
 
-	file := fmt.Sprintf("/tmp/lea-%d.log", timestamp)
+	tmpDir := os.TempDir()
+
+	file := fmt.Sprintf("%s/lea-%d.log", tmpDir, timestamp)
 
 	err := golog.EnableLogFile(file)
 	if err != nil {
