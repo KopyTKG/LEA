@@ -1,8 +1,8 @@
 #Make file used for compilation and installation of LEA
 
-.PHONY: all x86_64 arm64 clean
+.PHONY: all x86_64 arm64 win clean
 
-all: x86_64 arm64
+all: x86_64 arm64 win
 
 
 x86_64:
