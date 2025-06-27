@@ -1,0 +1,33 @@
+name: "Security issue"
+description: "Report a security concern or insecure implementation"
+title: "[Security] "
+labels: [security]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please describe the security concern in detail.
+  - type: textarea
+    id: description
+    attributes:
+      label: "Description"
+      description: "Describe the security concern or insecure implementation."
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: "Impact"
+      description: "Who/what is affected? How severe is the issue?"
+    validations:
+      required: true
+  - type: textarea
+    id: tasks
+    attributes:
+      label: "Tasks"
+      description: "What needs to be done to address this issue?"
+      value: |
+        - ...
+    validations:
+      required: false
