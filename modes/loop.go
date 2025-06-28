@@ -109,7 +109,6 @@ func worker(wg *sync.WaitGroup, semaphore chan struct{}, tmp, path string, enc b
 	if err != nil {
 		return
 	}
-	defer file.Close()
 
 	fs, _ := file.Stat()
 
@@ -118,6 +117,7 @@ func worker(wg *sync.WaitGroup, semaphore chan struct{}, tmp, path string, enc b
 	(*UI).AddFile(&f)
 	f.Bar = terminal.BarSetup(50)
 	readAndProcessFileInChunks(state.CYPHERMODE, tmp, rk, file, IV, enc, int(state.Key.Metadata.KeyLength), &f)
+	file.Close()
 	cleanup(tmp, path)
 
 	f.Done = true
@@ -199,7 +199,6 @@ func secureWipe(path string, iterations int) error {
 	if err != nil {
 		return err
 	}
-	defer file.Close()
 
 	stat, _ := file.Stat()
 	size := stat.Size()
@@ -224,6 +223,8 @@ func secureWipe(path string, iterations int) error {
 		}
 		file.Sync()
 	}
+
+	file.Close()
 	return os.Remove(path)
 }
 
