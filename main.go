@@ -18,6 +18,10 @@ import (
 )
 
 func main() {
+	/* Setting version */
+
+	help.VERSION = "v3.0.1"
+
 	/* Initialize Golog */
 
 	timestamp := time.Now().Unix()

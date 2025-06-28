@@ -48,6 +48,7 @@ func PerformMode(encrypt bool) {
 	var tmpFiles []string
 
 	UI := terminal.Rendering{}
+	UI.SetupOS()
 	UI.Files = make([]*terminal.Fileln, 0)
 
 	if state.RECURSION {
