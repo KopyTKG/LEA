@@ -16,17 +16,29 @@ import (
 
 type Fileln struct {
 	Filename string // Filepath
-	Current  int    // Done size
-	Total    int    // Total size
+	Current  uint64 // Done size
+	Total    uint64 // Total size
 	Done     bool
 	Bar      []rune // Bar elements to render
 }
 
-func (f *Fileln) Update(newVal int) {
+func (f *Fileln) Update(newVal uint64) {
 	f.Current = newVal
 	per := (100 * newVal) / f.Total
-	blocks := ((len(f.Bar) - 2) * per) / 100
-	for i := 1; i < blocks; i++ {
+	blocks := (uint64((len(f.Bar) - 2)) * per) / 100
+
+	if blocks >= uint64(len(f.Bar)-2) {
+		f.Done = true
+		for i := range f.Bar {
+			f.Bar[i] = '#'
+		}
+		return
+	}
+
+	for i := range blocks {
+		if i == 0 {
+			continue
+		}
 		f.Bar[i] = '#'
 	}
 }
@@ -70,7 +82,14 @@ func (r *Rendering) linuxUI() {
 
 	ui += fmt.Sprintf("by @KopyTKG %20s \n\n", help.VERSION)
 
-	ui += fmt.Sprintf("\033[1m%s\033[0m | \033[1m%s\033[0m | KEY \033[1m%d\033[0m \n\n", state.Mode, strings.ToUpper(state.CYPHERMODE), state.Key.Metadata.KeyLength)
+	mode := ""
+	if state.ENCRYPT {
+		mode = "ENCRYPTION"
+	} else {
+		mode = "DECRYPTION"
+	}
+
+	ui += fmt.Sprintf("\033[1m%s\033[0m | \033[1m%s\033[0m | KEY \033[1m%d\033[0m \n\n", mode, strings.ToUpper(state.CYPHERMODE), state.Key.Metadata.KeyLength)
 
 	ui += fmt.Sprintf("%-10s%2d/%-4d] \n\n", "Status  [", r.Done, r.Total)
 
@@ -120,8 +139,14 @@ func (r *Rendering) windowsUI() {
 	}
 
 	ui += fmt.Sprintf("by @KopyTKG %20s \n\n", help.VERSION)
+	mode := ""
+	if state.ENCRYPT {
+		mode = "ENCRYPTION"
+	} else {
+		mode = "DECRYPTION"
+	}
 
-	ui += fmt.Sprintf("%s | %s | KEY %d \n\n", state.Mode, strings.ToUpper(state.CYPHERMODE), state.Key.Metadata.KeyLength)
+	ui += fmt.Sprintf("%s | %s | KEY %d \n\n", mode, strings.ToUpper(state.CYPHERMODE), state.Key.Metadata.KeyLength)
 
 	ui += fmt.Sprintf("%-10s%2d/%-4d] \n\n", "Status  [", r.Done, r.Total)
 

@@ -1,6 +1,8 @@
 package state
 
-import "lea/key"
+import (
+	"lea/key"
+)
 
 const CHUNKSIZE = 4 // Bytes
 
@@ -12,6 +14,7 @@ var FILEPATH string = ""
 
 var RECURSION bool = false
 var VERBOSE bool = false
+var ENCRYPT bool = true
 
 /*
 --------------
@@ -23,6 +26,22 @@ var VERBOSE bool = false
 var Key key.KeyMaterial
 
 // Wipe iterations
-var Iterations int
+var Iterations int = 3
 
-var Mode string = "Decryption"
+/*
+------------------------
+    ERROR HANDLING
+------------------------
+*/
+
+const (
+	Key128 = 128
+	Key192 = 192
+	Key256 = 256
+)
+
+var ValidKeys = map[int]bool{
+	Key128: true,
+	Key192: true,
+	Key256: true,
+}
