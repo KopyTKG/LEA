@@ -35,7 +35,7 @@ ADVANCED:
 
 DEBUG:
     --version			 Show program version
-
+    --DEBUG			 Enable debug mode
 
 Examples:
   Encrypt:
