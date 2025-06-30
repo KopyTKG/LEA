@@ -5,7 +5,6 @@ import (
 	"lea/bitops"
 	"lea/core"
 	"lea/state"
-	"lea/stream"
 )
 
 type CBC struct{}
@@ -37,47 +36,40 @@ func (c *CBC) argsCheck(args *CBCArgs) error {
 	return nil
 }
 
-func (c *CBC) Encrypt(chunks [4]uint32, args ModeArgs) error {
+func (c *CBC) Encrypt(chunks [4]uint32, args ModeArgs) ([4]uint32, error) {
 	cbcArgs, ok := args.(*CBCArgs)
 	if !ok {
-		return fmt.Errorf("invalid args for CBC")
+		return [4]uint32{}, fmt.Errorf("invalid args for CBC")
 	}
 
 	if err := c.argsCheck(cbcArgs); err != nil {
-		return err
+		return [4]uint32{}, err
 	}
 
 	xorredBlock := bitops.MultiXOR32(chunks, *(cbcArgs.Prev))
 
 	encryptedBlock := core.SelectEncrypt(xorredBlock, cbcArgs.RK, cbcArgs.KeySize)
 
-	cbcArgs.Prev = (*[4]uint32)(encryptedBlock)
+	*cbcArgs.Prev = encryptedBlock
 
-	if err := stream.WriteBinaryStream(cbcArgs.FilePath, [4]uint32(encryptedBlock)); err != nil {
-		return fmt.Errorf("Error writing to binary stream: %v\n", err)
-	}
-
-	return nil
+	return encryptedBlock, nil
 }
 
-func (c *CBC) Decrypt(chunks [4]uint32, args ModeArgs) error {
+func (c *CBC) Decrypt(chunks [4]uint32, args ModeArgs) ([4]uint32, error) {
 	cbcArgs, ok := args.(*CBCArgs)
 	if !ok {
-		return fmt.Errorf("invalid args for CBC")
+		return [4]uint32{}, fmt.Errorf("invalid args for CBC")
 	}
 
 	if err := c.argsCheck(cbcArgs); err != nil {
-		return err
+		return [4]uint32{}, err
 	}
+
 	decryptedBlock := core.SelectDecrypt(chunks, cbcArgs.RK, cbcArgs.KeySize)
 
-	xorredBlock := bitops.MultiXOR32([4]uint32(decryptedBlock), *(cbcArgs.Prev))
+	xorredBlock := bitops.MultiXOR32(decryptedBlock, *(cbcArgs.Prev))
 
-	cbcArgs.Prev = &chunks
+	*cbcArgs.Prev = chunks
 
-	if err := stream.WriteBinaryStream(cbcArgs.FilePath, xorredBlock); err != nil {
-		return fmt.Errorf("Error writing to binary stream: %v\n", err)
-	}
-
-	return nil
+	return xorredBlock, nil
 }

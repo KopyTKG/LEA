@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"lea/core"
 	"lea/state"
-	"lea/stream"
 )
 
 type ECB struct{}
@@ -31,40 +30,31 @@ func (e *ECB) argsCheck(args *ECBArgs) error {
 	return nil
 }
 
-func (e *ECB) Encrypt(chunks [4]uint32, args ModeArgs) error {
-
+func (e *ECB) Encrypt(chunks [4]uint32, args ModeArgs) ([4]uint32, error) {
 	ecbArgs, ok := args.(*ECBArgs)
 	if !ok {
-		return fmt.Errorf("invalid args for ECB")
+		return [4]uint32{}, fmt.Errorf("invalid args for ECB")
 	}
 
 	if err := e.argsCheck(ecbArgs); err != nil {
-		return err
+		return [4]uint32{}, err
 	}
 
 	encryptedBlock := core.SelectEncrypt(chunks, ecbArgs.RK, ecbArgs.KeySize)
-
-	if err := stream.WriteBinaryStream(ecbArgs.FilePath, [4]uint32(encryptedBlock)); err != nil {
-		return fmt.Errorf("Error writing to binary stream: %v\n", err)
-	}
-	return nil
+	return encryptedBlock, nil
 }
 
-func (e *ECB) Decrypt(chunks [4]uint32, args ModeArgs) error {
-
+func (e *ECB) Decrypt(chunks [4]uint32, args ModeArgs) ([4]uint32, error) {
 	ecbArgs, ok := args.(*ECBArgs)
 	if !ok {
-		return fmt.Errorf("invalid args for ECB")
+		return [4]uint32{}, fmt.Errorf("invalid args for ECB")
 	}
 
 	if err := e.argsCheck(ecbArgs); err != nil {
-		return err
+		return [4]uint32{}, err
 	}
 
-	encryptedBlock := core.SelectDecrypt(chunks, ecbArgs.RK, ecbArgs.KeySize)
+	decryptedBlock := core.SelectDecrypt(chunks, ecbArgs.RK, ecbArgs.KeySize)
 
-	if err := stream.WriteBinaryStream(ecbArgs.FilePath, [4]uint32(encryptedBlock)); err != nil {
-		return fmt.Errorf("Error writing to binary stream: %v\n", err)
-	}
-	return nil
+	return decryptedBlock, nil
 }

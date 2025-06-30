@@ -3,6 +3,7 @@ package modes
 import (
 	"bytes"
 	"crypto/rand"
+	"encoding/binary"
 	"lea/core"
 	"lea/schedule"
 	"lea/state"
@@ -95,36 +96,110 @@ func worker(wg *sync.WaitGroup, semaphore chan struct{}, path string, rk []uint3
 	(*UI).AddFile(&f)
 	f.Bar = terminal.BarSetup(50)
 
-	counter := [4]uint32{0, 0, 0, 0}
-	prev := [4]uint32{0, 0, 0, 0}
+	metadata := core.Metadata{}
 
-	var byteCount uint64 = 0
+	if !state.ENCRYPT {
+		mete, err := core.ReadMetadata(&target)
+		if err != nil {
+			golog.Error(err)
+			return
+		}
+
+		metadata = mete
+	} else {
+		if state.CYPHERMODE != "ecb" {
+			if err := target.RandomIV(); err != nil {
+				golog.Errorf("Error generating random IV: %v", err)
+				return
+			}
+		} else {
+			for i := range target.IV {
+				target.IV[i] = 0
+			}
+
+		}
+	}
 
 	var args ModeArgs
+
+	var marker byte = '-'
 
 	switch state.CYPHERMODE {
 	case "ecb":
 		args = &ECBArgs{FilePath: target.Temp, RK: rk, KeySize: int(state.Key.Metadata.KeyLength)}
+		marker = 'E'
 	case "cbc":
-		args = &CBCArgs{FilePath: target.Temp, RK: rk, KeySize: int(state.Key.Metadata.KeyLength), Prev: &prev}
+		args = &CBCArgs{FilePath: target.Temp, RK: rk, KeySize: int(state.Key.Metadata.KeyLength), Prev: &target.IV}
+		marker = 'B'
 	case "cfb":
-		args = &CFBArgs{FilePath: target.Temp, RK: rk, KeySize: int(state.Key.Metadata.KeyLength), Prev: &prev}
+		args = &CFBArgs{FilePath: target.Temp, RK: rk, KeySize: int(state.Key.Metadata.KeyLength), Prev: &target.IV}
+		marker = 'F'
 	case "ofb":
-		args = &OFBArgs{FilePath: target.Temp, RK: rk, KeySize: int(state.Key.Metadata.KeyLength), Prev: &prev}
+		args = &OFBArgs{FilePath: target.Temp, RK: rk, KeySize: int(state.Key.Metadata.KeyLength), Prev: &target.IV}
+		marker = 'O'
 	case "ctr":
-		args = &CTRArgs{FilePath: target.Temp, RK: rk, KeySize: int(state.Key.Metadata.KeyLength), Counter: &counter}
+		args = &CTRArgs{FilePath: target.Temp, RK: rk, KeySize: int(state.Key.Metadata.KeyLength), Counter: &target.IV}
+		marker = 'T'
 	default:
 		golog.Errorf("Unsupported cipher mode: %s", state.CYPHERMODE)
 		return
 	}
 
+	if state.ENCRYPT {
+		metadata.IV = target.IV
+		metadata.OriginalSize = fs.Size()
+		metadata.Version = 1
+		metadata.Mode = marker
+		metadata.KeySize = uint16(state.Key.Metadata.KeyLength)
+	}
+
+	if state.ENCRYPT {
+		bytes := make([]byte, 32)
+		for i, v := range metadata.ToArray() {
+			binary.LittleEndian.PutUint32(bytes[i*4:(i+1)*4], v)
+		}
+		if err := stream.WriteBinaryStream(target.Temp, bytes); err != nil {
+			golog.Errorf("Error writing to binary stream: %v\n", err)
+			return
+		}
+	}
+
+	var bytesWritten uint64 = 0
 	for chunk := range target.Stream() {
-		if err := CryptMethod(chunk, args); err != nil {
+		block, err := CryptMethod(chunk, args)
+		if err != nil {
 			golog.Errorf("Error during encryption/decryption: %v", err)
 			return
 		}
-		f.Update(byteCount)
-		byteCount += 16
+		f.Update(bytesWritten)
+
+		bytes := make([]byte, 16)
+		for i, v := range block {
+			binary.LittleEndian.PutUint32(bytes[i*4:(i+1)*4], v)
+		}
+
+		toWrite := 16
+		if !state.ENCRYPT {
+			// Only on the last block, write up to original size
+			remaining := int64(metadata.OriginalSize) - int64(bytesWritten)
+			if remaining < 16 {
+				if remaining <= 0 {
+					break
+				}
+				toWrite = int(remaining)
+			}
+		}
+
+		if err := stream.WriteBinaryStream(target.Temp, bytes[:toWrite]); err != nil {
+			golog.Errorf("Error writing to binary stream: %v\n", err)
+			return
+		}
+
+		bytesWritten += uint64(toWrite)
+
+		if !state.ENCRYPT && bytesWritten >= uint64(metadata.OriginalSize) {
+			break
+		}
 	}
 
 	target.File.Close()
@@ -182,6 +257,7 @@ func cleanup(tmp, filePath string) {
 	if err := secureWipe(filePath, state.Iterations); err != nil {
 		golog.Errorf("Error removing original file: %v", err)
 	}
+
 	if err := os.Rename(tmp, filePath); err != nil {
 		golog.Errorf("Error renaming temporary file: %v", err)
 	}

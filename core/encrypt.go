@@ -6,19 +6,16 @@ import (
 	"lea/types"
 )
 
-func SelectEncrypt(block [4]uint32, rk []uint32, size int) []uint32 {
+func SelectEncrypt(block [4]uint32, rk []uint32, size int) [4]uint32 {
 	switch size {
 	case 128:
-		b := Encrypt128(block, types.Rk128(rk))
-		return b[:]
+		return Encrypt128(block, types.Rk128(rk))
 	case 192:
-		b := Encrypt192(block, types.Rk192(rk))
-		return b[:]
+		return Encrypt192(block, types.Rk192(rk))
 	case 256:
-		b := Encrypt256(block, types.Rk256(rk))
-		return b[:]
+		return Encrypt256(block, types.Rk256(rk))
 	default:
-		return []uint32{}
+		return [4]uint32{}
 	}
 }
 

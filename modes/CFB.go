@@ -5,7 +5,6 @@ import (
 	"lea/bitops"
 	"lea/core"
 	"lea/state"
-	"lea/stream"
 )
 
 type CFB struct{}
@@ -37,47 +36,38 @@ func (c *CFB) argsCheck(args *CFBArgs) error {
 	return nil
 }
 
-func (c *CFB) Encrypt(chunks [4]uint32, args ModeArgs) error {
+func (c *CFB) Encrypt(chunks [4]uint32, args ModeArgs) ([4]uint32, error) {
 	cfbArgs, ok := args.(*CFBArgs)
 	if !ok {
-		return fmt.Errorf("invalid args for CFB")
+		return [4]uint32{}, fmt.Errorf("invalid args for CFB")
 	}
 
 	if err := c.argsCheck(cfbArgs); err != nil {
-		return err
+		return [4]uint32{}, err
 	}
 
-	encryptedBlock := [4]uint32(core.SelectEncrypt(*cfbArgs.Prev, cfbArgs.RK, cfbArgs.KeySize))
+	encryptedBlock := core.SelectEncrypt(*cfbArgs.Prev, cfbArgs.RK, cfbArgs.KeySize)
 
-	p := bitops.MultiXOR32(encryptedBlock, chunks)
-	cfbArgs.Prev = &p
+	xorredBlock := bitops.MultiXOR32(encryptedBlock, chunks)
+	*cfbArgs.Prev = xorredBlock
 
-	if err := stream.WriteBinaryStream(cfbArgs.FilePath, *cfbArgs.Prev); err != nil {
-		return fmt.Errorf("Error writing to binary stream: %v\n", err)
-	}
-
-	return nil
+	return xorredBlock, nil
 }
 
-func (c *CFB) Decrypt(chunks [4]uint32, args ModeArgs) error {
+func (c *CFB) Decrypt(chunks [4]uint32, args ModeArgs) ([4]uint32, error) {
 	cfbArgs, ok := args.(*CFBArgs)
 	if !ok {
-		return fmt.Errorf("invalid args for CFB")
+		return [4]uint32{}, fmt.Errorf("invalid args for CFB")
 	}
 
 	if err := c.argsCheck(cfbArgs); err != nil {
-		return err
+		return [4]uint32{}, err
 	}
 
-	encryptedBlock := [4]uint32(core.SelectEncrypt(*cfbArgs.Prev, cfbArgs.RK, cfbArgs.KeySize))
+	encryptedBlock := core.SelectEncrypt(*cfbArgs.Prev, cfbArgs.RK, cfbArgs.KeySize)
 
-	text := bitops.MultiXOR32(encryptedBlock, chunks)
+	xorredBlock := bitops.MultiXOR32(encryptedBlock, chunks)
+	*cfbArgs.Prev = chunks
 
-	if err := stream.WriteBinaryStream(cfbArgs.FilePath, text); err != nil {
-		return fmt.Errorf("Error writing to binary stream: %v\n", err)
-	}
-
-	cfbArgs.Prev = &chunks
-
-	return nil
+	return xorredBlock, nil
 }

@@ -148,6 +148,9 @@ func processArguments(args []string, argsList *utils.List) error {
 		case arg == "-v" || arg == "--verbose":
 			state.VERBOSE = true
 
+		case arg == "--DEBUG":
+			golog.LOGLEVEL = golog.DEBUG
+
 		default:
 			return fmt.Errorf("Unknowed switch found (%s) run \"lea -h\"", arg)
 		}

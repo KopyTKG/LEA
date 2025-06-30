@@ -5,19 +5,16 @@ import (
 	"lea/types"
 )
 
-func SelectDecrypt(block [4]uint32, rk []uint32, size int) []uint32 {
+func SelectDecrypt(block [4]uint32, rk []uint32, size int) [4]uint32 {
 	switch size {
-		case 128:
-			b := Decrypt128(block, types.Rk128(rk))
-			return b[:]
-		case 192:
-			b := Decrypt192(block, types.Rk192(rk))
-			return b[:]
-		case 256:
-			b := Decrypt256(block, types.Rk256(rk))
-			return b[:]
-		default:
-			return []uint32{}
+	case 128:
+		return Decrypt128(block, types.Rk128(rk))
+	case 192:
+		return Decrypt192(block, types.Rk192(rk))
+	case 256:
+		return Decrypt256(block, types.Rk256(rk))
+	default:
+		return [4]uint32{}
 	}
 }
 

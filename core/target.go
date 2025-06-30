@@ -1,8 +1,9 @@
 package core
 
 import (
-	"bufio"
+	"crypto/rand"
 	"encoding/binary"
+	"fmt"
 	"io"
 	"iter"
 	"lea/state"
@@ -11,6 +12,27 @@ import (
 	"github.com/kopytkg/golog"
 )
 
+// Metadata holds metadata information for decryption operation
+type Metadata struct {
+	IV           [4]uint32 // Initialization Vector used for encryption (counter for CTR, IV for CBC, etc.)
+	OriginalSize int64     // Original size of the file before encryption
+	Version      uint8     // Version of the encryption algorithm used
+	Mode         byte      // 'O' for OFB, 'T' for CTR, 'E' for ECB, 'F' for CFB, 'B' for CBC
+	KeySize      uint16    // Size of the key used for encryption (128, 192, or 256 bits)
+}
+
+func (m *Metadata) ToArray() []uint32 {
+	// Convert Metadata to a []uint32 array for writing
+	return []uint32{
+		m.IV[0], m.IV[1], m.IV[2], m.IV[3],
+		uint32(m.OriginalSize),
+		uint32(m.Version),
+		uint32(m.Mode),
+		uint32(m.KeySize),
+	}
+}
+
+// Target represents a file target for encryption/decryption operations
 type Target struct {
 	Host string
 	Temp string
@@ -20,6 +42,63 @@ type Target struct {
 	IV [4]uint32
 
 	OnChunk func(chunk [4]uint32)
+}
+
+func ReadMetadata(t *Target) (Metadata, error) {
+	if t.File == nil {
+		return Metadata{}, fmt.Errorf("File is not opened, cannot read metadata")
+
+	}
+
+	meta := Metadata{}
+
+	buf := make([]byte, 32) // 4 uint32 values = 16 bytes IV + 16 bytes for metadata
+
+	_, err := io.ReadFull(t.File, buf)
+	if err != nil {
+		return Metadata{}, fmt.Errorf("failed to read metadata: %w", err)
+	}
+
+	// Separate the first 16 bytes for IV
+	for i := range 4 {
+		t.IV[i] = binary.LittleEndian.Uint32(buf[i*4 : (i+1)*4])
+	}
+
+	meta.IV = t.IV
+
+	// The rest of the buffer can be used for metadata
+	metadata := buf[16:32]
+	if len(metadata) < 16 {
+		return Metadata{}, fmt.Errorf("metadata buffer is too small")
+	}
+
+	for i := range 4 {
+		switch i {
+		case 0:
+			meta.OriginalSize = int64(binary.LittleEndian.Uint32(metadata[i*4 : (i+1)*4])) // Original size
+		case 1:
+			meta.Version = uint8(binary.LittleEndian.Uint32(metadata[i*4 : (i+1)*4])) // Version
+		case 2:
+			meta.Mode = byte(binary.LittleEndian.Uint32(metadata[i*4 : (i+1)*4])) // Mode
+		case 3:
+			meta.KeySize = uint16(binary.LittleEndian.Uint32(metadata[i*4 : (i+1)*4])) // Key size
+		}
+	}
+	return meta, nil
+}
+
+func (t *Target) RandomIV() error {
+	buf := make([]byte, 16)
+
+	if _, err := rand.Read(buf); err != nil {
+		return err
+	}
+
+	for i := range 4 {
+		t.IV[i] = binary.LittleEndian.Uint32(buf[i*4 : (i+1)*4])
+	}
+
+	return nil
 }
 
 func (t *Target) Open(path string) error {
@@ -53,12 +132,11 @@ func (t *Target) Close() error {
 
 func (t *Target) Stream() iter.Seq[[4]uint32] {
 	return func(yield func([4]uint32) bool) {
-		reader := bufio.NewReader((*t).File)
 		var chunks []uint32
 		buf := make([]byte, state.CHUNKSIZE)
 
 		for {
-			n, err := io.ReadFull(reader, buf)
+			n, err := io.ReadFull(t.File, buf)
 			if err == io.EOF || err == io.ErrUnexpectedEOF {
 				if n > 0 {
 					var paddedBuf [state.CHUNKSIZE]byte

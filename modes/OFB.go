@@ -5,7 +5,6 @@ import (
 	"lea/bitops"
 	"lea/core"
 	"lea/state"
-	"lea/stream"
 )
 
 type OFB struct{}
@@ -37,29 +36,24 @@ func (o *OFB) argsCheck(args *OFBArgs) error {
 	return nil
 }
 
-func (o *OFB) Encrypt(chunks [4]uint32, args ModeArgs) error {
+func (o *OFB) Encrypt(chunks [4]uint32, args ModeArgs) ([4]uint32, error) {
 	ofbArgs, ok := args.(*OFBArgs)
 	if !ok {
-		return fmt.Errorf("invalid args for OFB")
+		return [4]uint32{}, fmt.Errorf("invalid args for OFB")
 	}
 
 	if err := o.argsCheck(ofbArgs); err != nil {
-		return err
+		return [4]uint32{}, err
 	}
 
-	keystreamBlock := [4]uint32(core.SelectEncrypt(*ofbArgs.Prev, ofbArgs.RK, ofbArgs.KeySize))
+	keystreamBlock := core.SelectEncrypt(*ofbArgs.Prev, ofbArgs.RK, ofbArgs.KeySize)
 
 	encryptedBlock := bitops.MultiXOR32(chunks, keystreamBlock)
+	*ofbArgs.Prev = keystreamBlock
 
-	ofbArgs.Prev = &keystreamBlock
-
-	if err := stream.WriteBinaryStream(ofbArgs.FilePath, encryptedBlock); err != nil {
-		return fmt.Errorf("Error writing to binary stream: %v\n", err)
-	}
-
-	return nil
+	return encryptedBlock, nil
 }
 
-func (o *OFB) Decrypt(chunks [4]uint32, args ModeArgs) error {
+func (o *OFB) Decrypt(chunks [4]uint32, args ModeArgs) ([4]uint32, error) {
 	return o.Encrypt(chunks, args) // OFB is symmetric, so encryption and decryption are the same
 }

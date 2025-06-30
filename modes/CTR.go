@@ -5,7 +5,6 @@ import (
 	"lea/bitops"
 	"lea/core"
 	"lea/state"
-	"lea/stream"
 )
 
 type CTR struct{}
@@ -46,48 +45,40 @@ func (c *CTR) argsCheck(args *CTRArgs) error {
 	return nil
 }
 
-func (c *CTR) Encrypt(chunks [4]uint32, args ModeArgs) error {
+func (c *CTR) Encrypt(chunks [4]uint32, args ModeArgs) ([4]uint32, error) {
 	ctrArgs, ok := args.(*CTRArgs)
 	if !ok {
-		return fmt.Errorf("invalid args for CTR")
+		return [4]uint32{}, fmt.Errorf("invalid args for CTR")
 	}
 
 	if err := c.argsCheck(ctrArgs); err != nil {
-		return err
+		return [4]uint32{}, err
 	}
 
-	encB := [4]uint32(core.SelectEncrypt(*ctrArgs.Counter, ctrArgs.RK, ctrArgs.KeySize))
+	encryptedBlock := [4]uint32(core.SelectEncrypt(*ctrArgs.Counter, ctrArgs.RK, ctrArgs.KeySize))
 
-	prev := bitops.MultiXOR32(encB, chunks)
-
-	if err := stream.WriteBinaryStream(ctrArgs.FilePath, prev); err != nil {
-		return fmt.Errorf("Error writing to binary stream: %v\n", err)
-	}
+	xorredBlock := bitops.MultiXOR32(encryptedBlock, chunks)
 
 	ctrArgs.incrementCounter()
 
-	return nil
+	return xorredBlock, nil
 }
 
-func (c *CTR) Decrypt(chunks [4]uint32, args ModeArgs) error {
+func (c *CTR) Decrypt(chunks [4]uint32, args ModeArgs) ([4]uint32, error) {
 	ctrArgs, ok := args.(*CTRArgs)
 	if !ok {
-		return fmt.Errorf("invalid args for CTR")
+		return [4]uint32{}, fmt.Errorf("invalid args for CTR")
 	}
 
 	if err := c.argsCheck(ctrArgs); err != nil {
-		return err
+		return [4]uint32{}, err
 	}
 
-	encB := [4]uint32(core.SelectEncrypt(*ctrArgs.Counter, ctrArgs.RK, ctrArgs.KeySize))
+	decryptedBlock := [4]uint32(core.SelectEncrypt(*ctrArgs.Counter, ctrArgs.RK, ctrArgs.KeySize))
 
-	text := bitops.MultiXOR32(encB, chunks)
-
-	if err := stream.WriteBinaryStream(ctrArgs.FilePath, text); err != nil {
-		return fmt.Errorf("Error writing to binary stream: %v\n", err)
-	}
+	xorredBlock := bitops.MultiXOR32(decryptedBlock, chunks)
 
 	ctrArgs.incrementCounter()
 
-	return nil
+	return xorredBlock, nil
 }
