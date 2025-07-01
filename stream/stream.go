@@ -63,3 +63,32 @@ func WriteBinaryStream(filePath string, data []byte) error {
 
 	return nil
 }
+
+// WriteCMAC writes a 16-byte CMAC (as 4 uint32 words) at offset 32 in the file in little-endian order.
+// It overwrites bytes 32–47.
+func WriteCMAC(filePath string, data []uint32) error {
+	if len(data) != 4 {
+		return fmt.Errorf("expected CMAC as 4 uint32 words (16 bytes), got %d", len(data))
+	}
+	file, err := os.OpenFile(filePath, os.O_WRONLY, 0)
+	if err != nil {
+		return fmt.Errorf("failed to open file for writing: %v", err)
+	}
+	defer file.Close()
+
+	// Seek to offset 32
+	_, err = file.Seek(32, io.SeekStart)
+	if err != nil {
+		return fmt.Errorf("failed to seek in file: %v", err)
+	}
+
+	buf := make([]byte, 16)
+	for i, v := range data {
+		binary.LittleEndian.PutUint32(buf[i*4:], v)
+	}
+	_, err = file.Write(buf)
+	if err != nil {
+		return fmt.Errorf("failed to write CMAC: %v", err)
+	}
+	return nil
+}

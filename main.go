@@ -20,7 +20,7 @@ import (
 func main() {
 	/* Setting version */
 
-	help.VERSION = "v3.1.0"
+	help.VERSION = "v3.2.0"
 
 	/* Initialize Golog */
 

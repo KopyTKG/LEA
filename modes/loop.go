@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/rand"
 	"encoding/binary"
+	"lea/auth"
 	"lea/core"
 	"lea/schedule"
 	"lea/state"
@@ -99,13 +100,13 @@ func worker(wg *sync.WaitGroup, semaphore chan struct{}, path string, rk []uint3
 	metadata := core.Metadata{}
 
 	if !state.ENCRYPT {
-		mete, err := core.ReadMetadata(&target)
+		meta, err := core.ReadMetadata(&target)
 		if err != nil {
 			golog.Error(err)
 			return
 		}
 
-		metadata = mete
+		metadata = meta
 	} else {
 		if state.CYPHERMODE != "ecb" {
 			if err := target.RandomIV(); err != nil {
@@ -154,7 +155,7 @@ func worker(wg *sync.WaitGroup, semaphore chan struct{}, path string, rk []uint3
 	}
 
 	if state.ENCRYPT {
-		bytes := make([]byte, 32)
+		bytes := make([]byte, 48)
 		for i, v := range metadata.ToArray() {
 			binary.LittleEndian.PutUint32(bytes[i*4:(i+1)*4], v)
 		}
@@ -165,6 +166,49 @@ func worker(wg *sync.WaitGroup, semaphore chan struct{}, path string, rk []uint3
 	}
 
 	var bytesWritten uint64 = 0
+
+	cmacArgs := auth.CMACargs{
+		RK:      rk,
+		KeySize: int(state.Key.Metadata.KeyLength),
+	}
+
+	cmac := auth.CMAC{}
+
+	if err := cmac.CreateKeys(cmacArgs); err != nil {
+		golog.Errorf("Error creating CMAC keys: %v", err)
+		return
+	}
+
+	prev := [4]uint32{}
+
+	if !state.ENCRYPT {
+		for chunk := range target.Stream() {
+			if prev != [4]uint32{} {
+				_, err := cmac.ComputeT(chunk, &cmacArgs, false)
+				if err != nil {
+					golog.Errorf("Error computing CMAC: %v", err)
+					return
+				}
+			}
+			prev = chunk
+		}
+		T, err := cmac.ComputeT(prev, &cmacArgs, true)
+		if err != nil {
+			golog.Errorf("Error computing final CMAC: %v", err)
+			return
+		}
+		if T == [4]uint32{} {
+			golog.Errorf("CMAC computation returned an empty block, possibly due to an error in the key schedule or encryption method.")
+			return
+		}
+
+		if err := auth.Validate(metadata.CMAC, cmacArgs); err != nil {
+			golog.Errorf("CMAC validation failed: %v", err)
+			os.Exit(1)
+		}
+		target.ResetStream()
+	}
+
 	for chunk := range target.Stream() {
 		block, err := CryptMethod(chunk, args)
 		if err != nil {
@@ -177,6 +221,17 @@ func worker(wg *sync.WaitGroup, semaphore chan struct{}, path string, rk []uint3
 		for i, v := range block {
 			binary.LittleEndian.PutUint32(bytes[i*4:(i+1)*4], v)
 		}
+
+		if state.ENCRYPT {
+			if prev != [4]uint32{} {
+				_, err := cmac.ComputeT(block, &cmacArgs, false)
+				if err != nil {
+					golog.Errorf("Error computing CMAC: %v", err)
+					return
+				}
+			}
+		}
+		prev = block
 
 		toWrite := 16
 		if !state.ENCRYPT {
@@ -199,6 +254,19 @@ func worker(wg *sync.WaitGroup, semaphore chan struct{}, path string, rk []uint3
 
 		if !state.ENCRYPT && bytesWritten >= uint64(metadata.OriginalSize) {
 			break
+		}
+	}
+	if state.ENCRYPT {
+		T, err := cmac.ComputeT(prev, &cmacArgs, true)
+		if err != nil {
+			golog.Errorf("Error computing final CMAC: %v", err)
+			return
+		}
+
+		err = stream.WriteCMAC(target.Temp, T[:])
+		if err != nil {
+			golog.Errorf("Error writing CMAC to file: %v", err)
+			return
 		}
 	}
 

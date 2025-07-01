@@ -19,6 +19,7 @@ type Metadata struct {
 	Version      uint8     // Version of the encryption algorithm used
 	Mode         byte      // 'O' for OFB, 'T' for CTR, 'E' for ECB, 'F' for CFB, 'B' for CBC
 	KeySize      uint16    // Size of the key used for encryption (128, 192, or 256 bits)
+	CMAC         [4]uint32 // Optional: HMAC or other integrity check data
 }
 
 func (m *Metadata) ToArray() []uint32 {
@@ -29,8 +30,13 @@ func (m *Metadata) ToArray() []uint32 {
 		uint32(m.Version),
 		uint32(m.Mode),
 		uint32(m.KeySize),
+		m.CMAC[0], m.CMAC[1], m.CMAC[2], m.CMAC[3],
 	}
 }
+
+const (
+	OFFSET = 48 // Offset for metadata in the file (16 bytes for IV + 16 bytes for metadata + 16 bytes for CMAC)
+)
 
 // Target represents a file target for encryption/decryption operations
 type Target struct {
@@ -52,7 +58,7 @@ func ReadMetadata(t *Target) (Metadata, error) {
 
 	meta := Metadata{}
 
-	buf := make([]byte, 32) // 4 uint32 values = 16 bytes IV + 16 bytes for metadata
+	buf := make([]byte, 48) // 4 uint32 values = 16 bytes IV + 16 bytes for metadata + 16 bytes for CMAC
 
 	_, err := io.ReadFull(t.File, buf)
 	if err != nil {
@@ -84,6 +90,13 @@ func ReadMetadata(t *Target) (Metadata, error) {
 			meta.KeySize = uint16(binary.LittleEndian.Uint32(metadata[i*4 : (i+1)*4])) // Key size
 		}
 	}
+
+	// The last 16 bytes can be used for CMAC or other integrity checks
+	meta.CMAC[0] = binary.LittleEndian.Uint32(buf[32:36])
+	meta.CMAC[1] = binary.LittleEndian.Uint32(buf[36:40])
+	meta.CMAC[2] = binary.LittleEndian.Uint32(buf[40:44])
+	meta.CMAC[3] = binary.LittleEndian.Uint32(buf[44:48])
+
 	return meta, nil
 }
 
@@ -173,5 +186,16 @@ func (t *Target) Stream() iter.Seq[[4]uint32] {
 				return
 			}
 		}
+	}
+}
+
+func (t *Target) ResetStream() {
+	// Reset the file pointer to the header OFFSET
+	if t.File != nil {
+		if _, err := t.File.Seek(OFFSET, io.SeekStart); err != nil {
+			golog.Errorf("Error resetting file stream: %v", err)
+		}
+	} else {
+		golog.Error("File is not opened, cannot reset stream")
 	}
 }
