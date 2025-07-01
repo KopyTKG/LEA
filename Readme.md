@@ -1,6 +1,7 @@
 # Light Encryption Algorithm (LEA)
 
 ![GitHub License](https://img.shields.io/github/license/kopytkg/LEA)
+[![Go Report Card](https://goreportcard.com/badge/github.com/KopyTKG/LEA)](https://goreportcard.com/report/github.com/KopyTKG/LEA)
 
 
 ## Overview 
