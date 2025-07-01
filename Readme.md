@@ -9,19 +9,21 @@
 
 ## :warning: Disclaimer
 
-"***This project is for educational purposes only.***"
+"***This project has not been validated by formal third-party.***"
 * Do not use LEA for protecting sensitive or production data.
-* The implementation is not audited or intended for real-world security.
 * Use at your own risk.
+
 
 ## Features
 
-* Encrypt and decrypt files using the LEA block cipher
-* Supports multiple cipher modes: ECB, CBC (default), CFB, OFB, CTR
-* Key lengths: 128, 192, or 256 bits (256-bit is default and recommended)
-* Recursive folder encryption
-* Progress display with verbose mode
-* Simple, scriptable CLI interface
+- 🔒 **Strong Encryption**: Implements the LEA block cipher with support for ECB, CBC, CFB, OFB, and CTR modes.
+- 🛡️ **CMAC Authentication**: All encrypted files are authenticated with CMAC for robust integrity and authenticity (added in v3.2.0).
+- 🎲 **Automatic, Secure IV Generation**: IVs are generated securely and automatically for every encryption (since v3.1.0).
+- 🪟 **Windows Compatibility**: Improved file handling and terminal support for Windows (since v3.1.0).
+- 🗃️ **Easy Key Management**: Supports 128, 192, and 256-bit keys, easily loaded from files.
+- ⚡ **Fast and Simple CLI**: Easily encrypt and decrypt files from the command line.
+- 📊 **Progress Bar**: Real-time progress bars for multi-file operations.
+
 
 
 ## Installation
