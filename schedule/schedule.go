@@ -59,15 +59,15 @@ func KeySchedule(size int, key, seed []uint32) ([]uint32, error) {
 }
 
 // Function failsafe
-func checkLen(item []uint32, lenght int) (bool, error) {
-	if len(item) == lenght {
+func checkLen(item []uint32, length int) (bool, error) {
+	if len(item) == length {
 		return true, nil
 	}
-	return false, fmt.Errorf("key or seed length is not valid, expected %d, got %d", lenght, len(item))
+	return false, fmt.Errorf("key or seed length is not valid, expected %d, got %d", length, len(item))
 }
 
 func schedule128(key, seed Chunk128) (*Rk128, error) {
-	// Lenght validation
+	// Length validation
 	_, err := checkLen(key[:], CHUNK128)
 	if err != nil {
 		return nil, err
@@ -109,7 +109,7 @@ func schedule128(key, seed Chunk128) (*Rk128, error) {
 }
 
 func schedule192(key, seed Chunk192) (*Rk192, error) {
-	// Lenght validation
+	// Length validation
 	_, err := checkLen(key[:], CHUNK192)
 	if err != nil {
 		return nil, err
@@ -149,7 +149,7 @@ func schedule192(key, seed Chunk192) (*Rk192, error) {
 }
 
 func schedule256(key, seed Chunk256) (*Rk256, error) {
-	// Lenght validation
+	// Length validation
 	_, err := checkLen(key[:], CHUNK256)
 	if err != nil {
 		return nil, err

@@ -8,7 +8,6 @@ import (
 	"lea/modes"
 	"lea/state"
 	"lea/stream"
-	"lea/utils"
 	"os"
 	"strconv"
 	"strings"
@@ -46,11 +45,8 @@ func main() {
 		return
 	}
 
-	// preset file paths
-	argsList := utils.List{}
-
 	// processing loop for args
-	if err := processArguments(args, &argsList); err != nil {
+	if err := processArguments(args); err != nil {
 		golog.Error(err)
 		os.Exit(1)
 	}
@@ -66,7 +62,7 @@ func main() {
 	}
 }
 
-func processArguments(args []string, argsList *utils.List) error {
+func processArguments(args []string) error {
 	state.FILEPATH = args[0]
 
 	if len(args) == 1 {

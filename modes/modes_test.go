@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	KEYLENGHT = 256
+	KEYLENGTH = 256
 )
 
 var KEY [8]uint32 = [8]uint32{0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000}
@@ -16,7 +16,7 @@ var IV [4]uint32 = [4]uint32{0x00000000, 0x00000000, 0x00000000, 0x00000000}
 func TestECB(t *testing.T) {
 	ecb := &ECB{}
 
-	rk, err := schedule.KeySchedule(KEYLENGHT, KEY[:], SEED[:])
+	rk, err := schedule.KeySchedule(KEYLENGTH, KEY[:], SEED[:])
 	if err != nil {
 		t.Fatalf("Key schedule failed: %v", err)
 	}
@@ -24,7 +24,7 @@ func TestECB(t *testing.T) {
 	args := &ECBArgs{
 		FilePath: "test_ecb.txt",
 		RK:       rk,
-		KeySize:  KEYLENGHT,
+		KeySize:  KEYLENGTH,
 	}
 
 	chunks := [4]uint32{0x00000001, 0x00000002, 0x00000003, 0x00000004}
@@ -48,7 +48,7 @@ func TestCBC(t *testing.T) {
 	cbc := &CBC{}
 
 	ivEnc := IV
-	rk, err := schedule.KeySchedule(KEYLENGHT, KEY[:], SEED[:])
+	rk, err := schedule.KeySchedule(KEYLENGTH, KEY[:], SEED[:])
 	if err != nil {
 		t.Fatalf("Key schedule failed: %v", err)
 	}
@@ -56,7 +56,7 @@ func TestCBC(t *testing.T) {
 	args := &CBCArgs{
 		FilePath: "test_cbc.txt",
 		RK:       rk,
-		KeySize:  KEYLENGHT,
+		KeySize:  KEYLENGTH,
 		Prev:     &ivEnc,
 	}
 
@@ -71,7 +71,7 @@ func TestCBC(t *testing.T) {
 	argsDec := &CBCArgs{
 		FilePath: "test_cbc.txt",
 		RK:       rk,
-		KeySize:  KEYLENGHT,
+		KeySize:  KEYLENGTH,
 		Prev:     &ivDec,
 	}
 
@@ -89,7 +89,7 @@ func TestCFB(t *testing.T) {
 	cfb := &CFB{}
 
 	ivEnc := IV
-	rk, err := schedule.KeySchedule(KEYLENGHT, KEY[:], SEED[:])
+	rk, err := schedule.KeySchedule(KEYLENGTH, KEY[:], SEED[:])
 	if err != nil {
 		t.Fatalf("Key schedule failed: %v", err)
 	}
@@ -97,7 +97,7 @@ func TestCFB(t *testing.T) {
 	args := &CFBArgs{
 		FilePath: "test_cfb.txt",
 		RK:       rk,
-		KeySize:  KEYLENGHT,
+		KeySize:  KEYLENGTH,
 		Prev:     &ivEnc,
 	}
 
@@ -112,7 +112,7 @@ func TestCFB(t *testing.T) {
 	argsDec := &CFBArgs{
 		FilePath: "test_cfb.txt",
 		RK:       rk,
-		KeySize:  KEYLENGHT,
+		KeySize:  KEYLENGTH,
 		Prev:     &ivDec,
 	}
 	decrypted, err := cfb.Decrypt(encrypted, argsDec)
@@ -128,7 +128,7 @@ func TestCFB(t *testing.T) {
 func TestOFB(t *testing.T) {
 	ofb := &OFB{}
 
-	rk, err := schedule.KeySchedule(KEYLENGHT, KEY[:], SEED[:])
+	rk, err := schedule.KeySchedule(KEYLENGTH, KEY[:], SEED[:])
 	if err != nil {
 		t.Fatalf("Key schedule failed: %v", err)
 	}
@@ -137,7 +137,7 @@ func TestOFB(t *testing.T) {
 	args := &OFBArgs{
 		FilePath: "test_ofb.txt",
 		RK:       rk,
-		KeySize:  KEYLENGHT,
+		KeySize:  KEYLENGTH,
 		Prev:     &inEnc,
 	}
 
@@ -152,7 +152,7 @@ func TestOFB(t *testing.T) {
 	argsDec := &OFBArgs{
 		FilePath: "test_ofb.txt",
 		RK:       rk,
-		KeySize:  KEYLENGHT,
+		KeySize:  KEYLENGTH,
 		Prev:     &inDec,
 	}
 	decrypted, err := ofb.Decrypt(encrypted, argsDec)
@@ -168,7 +168,7 @@ func TestOFB(t *testing.T) {
 func TestCTR(t *testing.T) {
 	ctr := &CTR{}
 
-	rk, err := schedule.KeySchedule(KEYLENGHT, KEY[:], SEED[:])
+	rk, err := schedule.KeySchedule(KEYLENGTH, KEY[:], SEED[:])
 	if err != nil {
 		t.Fatalf("Key schedule failed: %v", err)
 	}
@@ -178,7 +178,7 @@ func TestCTR(t *testing.T) {
 	args := &CTRArgs{
 		FilePath: "test_ctr.txt",
 		RK:       rk,
-		KeySize:  KEYLENGHT,
+		KeySize:  KEYLENGTH,
 		Counter:  &counter,
 	}
 
@@ -194,7 +194,7 @@ func TestCTR(t *testing.T) {
 	args = &CTRArgs{
 		FilePath: "test_ctr.txt",
 		RK:       rk,
-		KeySize:  KEYLENGHT,
+		KeySize:  KEYLENGTH,
 		Counter:  &counter,
 	}
 	decrypted, err := ctr.Decrypt(encrypted, args)

@@ -52,9 +52,9 @@ func (km *KeyMaterial) Validate() error {
 	}
 
 	// Validate key length
-	expectedLenght := int(km.Metadata.KeyLength) / 8
-	if len(km.Key)*4 != expectedLenght {
-		return fmt.Errorf("key length mismatch: expected %d bytes, got %d", expectedLenght/8, len(km.Key)*4)
+	expectedLength := int(km.Metadata.KeyLength) / 8
+	if len(km.Key)*4 != expectedLength {
+		return fmt.Errorf("key length mismatch: expected %d bytes, got %d", expectedLength/8, len(km.Key)*4)
 	}
 
 	// Verify digests
